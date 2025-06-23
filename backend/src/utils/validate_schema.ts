@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { validatePhoneNumber } from "../utils/validatePhoneNumber";
 
 // Schéma de validation pour l'inscription
 export const registerSchema = z.object({
@@ -53,7 +52,7 @@ export const registerSchema = z.object({
   phone: z
     .string()
     .min(1, "Numéro requis")
-    .transform((val, ctx) => validatePhoneNumber(val, ctx)),
+    .transform((val, ctx) => validateAndFormat(val, ctx)),
 });
 
 export const loginSchema = z.object({
