@@ -1,120 +1,238 @@
 import {
-  isUserExist,
-  createUser,
-  findUserByEmail,
+  isUserExistService,
+  createUserService,
+  findUserByEmailService,
+  verifyUserService,
+  sendVerifyTokenService,
+  getTokenEntryService,
+  deleteEmailVerificationTokenService,
 } from "../services/auth_service.js";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import { z } from "zod";
+import { HTTP_STATUS_CODES } from "../http_status_code.js";
+import { error, success } from "../utils/apiReponse.js";
+import { loginSchema, registerSchema } from "../utils/validate_schema.js";
+import crypto from "crypto";
 
-// Schéma de validation pour l'inscription
-export const registerSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email." }).trim(),
-  password: z
-    .string()
-    .min(8, { message: "Le mot de passe doit faire au minimum 8 caractères." })
-    .max(100, {
-      message: "Le mot de passe ne peux pas faire plus de 100 caractères.",
-    })
-    .regex(/[a-zA-Z]/, { message: "Doit contenir au moins 1 lettre." })
-    .regex(/[0-9]/, { message: "Doit contenir au moins 1 nombres" })
-    .regex(/[^a-zA-Z0-9]/, {
-      message: "Doit contenir au moins 1 caractère spécial.",
-    })
-    .trim(),
-  firstname: z
-    .string()
-    .min(2, { message: "Le prénom doit faire plus de 2 caractères." })
-    .max(50, { message: "Le pénom ne peux pas faire plus de 50 caractères." })
-    .optional()
-    .transform((str) => str?.trim()),
-  lastname: z
-    .string()
-    .min(2, { message: "Le nom de famille doit faire plus de 2 caractères." })
-    .max(50, {
-      message: "Le nom de famille ne peux pas faire plus de 50 caractères.",
-    })
-    .optional()
-    .transform((str) => str?.trim()),
-});
-
-export const register = async (req, res) => {
+export const register = async (req, res, next) => {
   const result = registerSchema.safeParse({
     email: req.body.email,
     password: req.body.password,
     firstname: req.body.firstname,
     lastname: req.body.lastname,
+    phone: req.body.phone,
+    confirmPassword: req.body.confirmPassword,
   });
 
   if (!result.success) {
-    return res.status(400).json({
+    return error(res, {
+      status: HTTP_STATUS_CODES.UnprocessableEntity,
+      message: "Des champs sont invalides",
+      code: HTTP_STATUS_CODES.UnprocessableEntity,
       errors: result.error.flatten().fieldErrors,
     });
   }
 
-  try {
-    const { email, password, firstname, lastname } = result.data;
+  if (result.data.password !== result.data.confirmPassword) {
+    return error(res, {
+      status: HTTP_STATUS_CODES.UnprocessableEntity,
+      message: "Les mots de passe ne correspondent pas",
+      code: HTTP_STATUS_CODES.UnprocessableEntity,
+      errors: { confirmPassword: ["Les mots de passe ne correspondent pas"] },
+    });
+  }
 
-    await isUserExist(email);
+  try {
+    const { email, password, firstname, lastname, phone } = result.data;
+
+    const exist = await isUserExistService(email);
+
+    if (exist) {
+      return error(res, {
+        status: HTTP_STATUS_CODES.Conflict,
+        message: "L'email est déjà utilisé",
+        code: HTTP_STATUS_CODES.Conflict,
+        errors: { email: ["Cet email est déjà utilisé"] },
+      });
+    }
 
     const hashed = await bcrypt.hash(password, 10);
 
-    const user = await createUser(
+    const user = await createUserService(
       email,
       hashed,
       firstname ?? "",
-      lastname ?? ""
+      lastname ?? "",
+      phone ?? ""
     );
 
-    const response = {
-      message: "Utilisateur créé avec succès",
-      user: { id: user.id, email: user.email },
-    };
-
-    res.status(201).json(response);
-  } catch (error) {
-    res.status(500).json({
-      error: error.message || "Erreur lors de l'inscription",
-    });
-  }
-};
-
-export const login = async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const user = await findUserByEmail(email);
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ error: "Identifiants incorrects" });
+    if (!user) {
+      return error(res, {
+        status: HTTP_STATUS_CODES.UnprocessableEntity,
+        message: "Echec de l'inscription",
+        code: HTTP_STATUS_CODES.UnprocessableEntity,
+        errors: { general: ["Echec de l'inscription"] },
+      });
     }
 
-    console.log("🔑 Création du token JWT...");
-    const jwtSecret = process.env.JWT_SECRET || "test-secret-key";
-    console.log("JWT Secret utilisé:", jwtSecret.substring(0, 5) + "...");
+    const userId = user.id;
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, {
-      expiresIn: "7d",
-    });
+    const rawToken = crypto.randomBytes(32).toString("hex");
 
-    console.log("✅ Token JWT créé");
+    await sendVerifyTokenService(userId, rawToken);
 
-    const response = {
-      message: "Utilisateur créé avec succès",
-      token,
-      user: { id: user.id, email: user.email },
-    };
+    const url = `http://localhost:3001/api/auth/verify?token=${rawToken}`;
+    console.log(`Envoyer un email à ${user.email} avec le lien : ${url}`);
 
-    console.log("📤 Envoi de la réponse:", response);
-    res.status(201).json(response);
+    return success(
+      res,
+      {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          phone: user.phone,
+        },
+      },
+      "Inscription réussie",
+      HTTP_STATUS_CODES.Created
+    );
   } catch (error) {
-    console.error("Error during login:", error);
-    res.status(500).json({ error: "Erreur lors de la connexion" });
+    next(error);
   }
 };
 
-export const me = async (req, res) => {
-  const response = {
-    message: "C'est moi ! 🕵️‍♂️",
-  };
-  res.status(200).json(response);
+export const verifyUser = async (req, res, next) => {
+  const { token } = req.query;
+
+  if (!token || typeof token !== "string") {
+    return error(res, {
+      status: HTTP_STATUS_CODES.BadRequest,
+      message: "Token manquant ou invalide",
+      code: HTTP_STATUS_CODES.BadRequest,
+      errors: { general: ["Token manquant ou invalide"] },
+    });
+  }
+
+  const tokenEntry = await getTokenEntryService(token);
+
+  if (!tokenEntry || tokenEntry.expiresAt < new Date()) {
+    return error(res, {
+      status: HTTP_STATUS_CODES.BadRequest,
+      message: "Lien expiré ou invalide",
+      code: HTTP_STATUS_CODES.BadRequest,
+      errors: { general: ["Lien expiré ou invalide"] },
+    });
+  }
+
+  await verifyUserService(tokenEntry.userId);
+  await deleteEmailVerificationTokenService(token);
+
+  return success(
+    res,
+    { verified: true },
+    "Email vérifié avec succès",
+    HTTP_STATUS_CODES.OK
+  );
+};
+
+// LOGIN
+
+export const login = async (req, res, next) => {
+  try {
+    const result = loginSchema.safeParse(req.body);
+
+    if (!result.success) {
+      return error(res, {
+        status: HTTP_STATUS_CODES.UnprocessableEntity,
+        message: "Des champs sont invalides",
+        code: HTTP_STATUS_CODES.UnprocessableEntity,
+        errors: result.error.flatten().fieldErrors,
+      });
+    }
+
+    const { email, password, rememberMe } = result.data;
+    const user = await findUserByEmailService(email);
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return error(res, {
+        status: HTTP_STATUS_CODES.Unauthorized,
+        message: "Email ou mot de passe incorrect",
+        code: HTTP_STATUS_CODES.Unauthorized,
+        errors: { email: ["Email ou mot de passe incorrect"] },
+      });
+    }
+
+    // Check if email is verified
+    if (!user?.isEmailVerified) {
+      return error(res, {
+        status: HTTP_STATUS_CODES.Unauthorized,
+        message: "Email non vérifié",
+        code: HTTP_STATUS_CODES.Unauthorized,
+        errors: { email: ["Email non vérifié"] },
+      });
+    }
+
+    req.session.userId = user.id;
+    req.session.userEmail = user.email;
+
+    if (rememberMe) {
+      req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 30;
+    } else {
+      req.session.cookie.maxAge = 1000 * 60 * 60 * 24;
+    }
+
+    return success(
+      res,
+      {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          role: user.role,
+        },
+        rememberMe: !!rememberMe,
+      },
+      "Connexion réussie"
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const logout = async (req, res, next) => {
+  try {
+    req.session.destroy((err) => {
+      if (err) return next(err);
+      res.clearCookie("connect.sid");
+      return success(res, null, "Déconnexion réussie");
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const checkAuth = async (req, res, next) => {
+  try {
+    const user = req.user;
+
+    return success(
+      res,
+      {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          phone: user.phone,
+          role: user.role,
+          isEmailVerified: user.isEmailVerified,
+        },
+      },
+      "Utilisateur authentifié"
+    );
+  } catch (error) {
+    next(error);
+  }
 };

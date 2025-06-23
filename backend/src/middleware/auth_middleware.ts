@@ -1,19 +1,41 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { error } from "console";
+import { HTTP_STATUS_CODES } from "../http_status_code";
+import { findUserByIdService } from "../services/auth_service";
 
-export async function authMiddleware(req, res, next) {
-  const token = req.cookies.sessionToken;
-  if (!token) return res.status(401).json({ message: "Non authentifié" });
+export const requireAuth = async (req, res, next) => {
+  try {
+    const userId = req.session?.userId;
 
-  const session = await prisma.session.findUnique({
-    where: { sessionToken: token },
-  });
+    if (!userId) {
+      return error(res, {
+        status: HTTP_STATUS_CODES.Unauthorized,
+        message: "Non autorisé - session manquante",
+        code: HTTP_STATUS_CODES.Unauthorized,
+      });
+    }
 
-  if (!session || session.expires < new Date()) {
-    return res.status(401).json({ message: "Session expirée" });
+    const user = await findUserByIdService(userId);
+
+    if (!user) {
+      req.session.destroy(() => {});
+      return error(res, {
+        status: HTTP_STATUS_CODES.Unauthorized,
+        message: "Utilisateur non trouvé",
+        code: HTTP_STATUS_CODES.Unauthorized,
+      });
+    }
+
+    if (!user.isEmailVerified) {
+      return error(res, {
+        status: HTTP_STATUS_CODES.Unauthorized,
+        message: "Email non vérifié",
+        code: HTTP_STATUS_CODES.Unauthorized,
+      });
+    }
+
+    req.user = user;
+    next();
+  } catch (err) {
+    next(err);
   }
-
-  const user = await prisma.user.findUnique({ where: { id: session.userId } });
-  req.user = user;
-  next();
-}
+};

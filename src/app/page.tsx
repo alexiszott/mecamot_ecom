@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export default function Home() {
+export default function Landing() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
       <div className="text-center space-y-8">
@@ -11,10 +11,26 @@ export default function Home() {
 
         <div className="space-y-4">
           <Link
-            href="/test"
+            href="/register"
             className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Tester l'API
+            Créer un compte
+          </Link>
+        </div>
+        <div className="space-y-4">
+          <Link
+            href="/login"
+            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Se connecter
+          </Link>
+        </div>
+        <div className="space-y-4">
+          <Link
+            href="/home"
+            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Aller a la page d'accueil
           </Link>
         </div>
       </div>
