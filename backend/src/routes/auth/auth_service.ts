@@ -1,4 +1,4 @@
-import { prisma } from "../prismaClient.js";
+import { prisma } from "../../prismaClient.js";
 
 export const isUserExistService = async (email: string) => {
   const existing = await prisma.user.findUnique({ where: { email } });

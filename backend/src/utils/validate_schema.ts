@@ -29,7 +29,7 @@ export const registerSchema = z.object({
     })
     .trim(),
 
-  confirmPassword: z.string().trim(),
+  confirmPassword: z.string().min(8).max(100).trim(),
 
   firstname: z
     .string()
@@ -47,12 +47,7 @@ export const registerSchema = z.object({
     })
     .transform((str) => str?.trim()),
 
-  // A MODIFIER PLUS TARD
-
-  phone: z
-    .string()
-    .min(1, "Numéro requis")
-    .transform((val, ctx) => validateAndFormat(val, ctx)),
+  phone: z.string().optional(),
 });
 
 export const loginSchema = z.object({
@@ -65,3 +60,6 @@ export const loginSchema = z.object({
 
   rememberMe: z.boolean().optional().default(false),
 });
+function parsePhoneNumberFromString(val: string, arg1: string) {
+  throw new Error("Function not implemented.");
+}

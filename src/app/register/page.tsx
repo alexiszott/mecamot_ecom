@@ -1,18 +1,12 @@
 "use client";
 
-import { use, useState } from "react";
+import { useEffect, useState } from "react";
 import { authService } from "../../lib/api";
 import { HttpStatusCode } from "axios";
-import {
-  User,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  AlertCircle,
-  CheckCircle,
-} from "lucide-react";
-import { set } from "react-hook-form";
+import { User, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import "react-phone-number-input/style.css";
+import PhoneInput, { Value } from "react-phone-number-input";
+import { useAuth } from "../context/auth_context";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -21,16 +15,22 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    phone: "",
   });
 
-  const [response, setResponse] = useState<any>(null);
+  const { user, isLoggedIn } = useAuth();
+  const [phoneNumber, setPhoneNumber] = useState<string>();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string[] }>(
     {}
   );
+
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      window.location.href = "/home";
+    }
+  }, [user, loading]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -47,7 +47,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setFieldErrors({});
-    setResponse(null);
 
     try {
       const data = await authService.register(
@@ -55,7 +54,7 @@ export default function RegisterPage() {
         formData.password,
         formData.firstname,
         formData.lastname,
-        formData.phone,
+        phoneNumber ?? "",
         formData.confirmPassword
       );
 
@@ -64,7 +63,7 @@ export default function RegisterPage() {
         return;
       }
 
-      setResponse(data);
+      window.location.href = "/home";
     } catch (err: any) {
       const apiError = err.response?.data;
       setFieldErrors(apiError?.errors || {});
@@ -72,36 +71,6 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-
-  if (response) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Inscription réussie !
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Votre compte a été créé avec succès. <br />
-              Un email de confirmation
-              <br />
-              vient de vous être envoyé. Connectez vous ensuite pour accéder à
-              notre catalogue de pièces moto et motoculture.
-            </p>
-            <button
-              onClick={() => (window.location.href = "/login")}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Se connecter
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -231,6 +200,17 @@ export default function RegisterPage() {
                 >
                   Téléphone (optionnel)
                 </label>
+                <PhoneInput
+                  placeholder="Enter un numéros de téléphone"
+                  value={formData.phone}
+                  onChange={setPhoneNumber}
+                  defaultCountry="FR"
+                  name="phone"
+                  id="phone"
+                  type="tel"
+                  className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+                {/*
                 <input
                   id="phone"
                   name="phone"
@@ -240,6 +220,7 @@ export default function RegisterPage() {
                   className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder="06 12 34 56 78"
                 />
+                */}
               </div>
 
               {/* Mot de passe */}

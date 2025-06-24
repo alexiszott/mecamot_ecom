@@ -2,31 +2,38 @@
 import { User } from "lucide-react";
 import { useAuth } from "../context/auth_context";
 import { authService } from "../../lib/api";
+import { useEffect } from "react";
 
 export default function Home() {
   const { user, loading } = useAuth();
 
-  console.log("User:", user);
+  useEffect(() => {
+    if (!loading && !user) {
+      window.location.href = "/login";
+    }
+  }, [user, loading]);
 
-  const logout = async () => {
+  const handleLogout = async () => {
     try {
       const res = await authService.logout();
-      console.log("Déconnexion réussie:", res);
-      if (res.code === 200) {
-        window.location.href = "/";
-      } else {
-        console.error("Erreur lors de la déconnexion");
-      }
-    } catch (error) {
-      console.error("Erreur de connexion:", error);
-    }
+      window.location.href = "/";
+    } catch (error) {}
   };
 
-  if (loading) return <p>Chargement...</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg">Chargement...</p>
+      </div>
+    );
+  }
 
   if (!user) {
-    window.location.href = "/login";
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg">Redirection...</p>
+      </div>
+    );
   }
 
   return (
@@ -38,15 +45,15 @@ export default function Home() {
             <User className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Vous êtes connecté !
+            Bonjour {user.firstname} !
           </h2>
+          <p className="text-gray-600 mb-4">{user.email}</p>
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Se déconnecter
           </button>
-          <p className="text-gray-600"></p>
         </div>
       </div>
     </div>

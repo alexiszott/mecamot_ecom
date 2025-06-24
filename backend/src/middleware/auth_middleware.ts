@@ -1,6 +1,6 @@
-import { error } from "console";
-import { HTTP_STATUS_CODES } from "../http_status_code";
-import { findUserByIdService } from "../services/auth_service";
+import { HTTP_STATUS_CODES } from "../utils/http_status_code";
+import { error } from "../utils/apiReponse";
+import { fetchUserService } from "../routes/user/user_service";
 
 export const requireAuth = async (req, res, next) => {
   try {
@@ -11,10 +11,11 @@ export const requireAuth = async (req, res, next) => {
         status: HTTP_STATUS_CODES.Unauthorized,
         message: "Non autorisé - session manquante",
         code: HTTP_STATUS_CODES.Unauthorized,
+        errors: { general: ["Non autorisé - session manquante"] },
       });
     }
 
-    const user = await findUserByIdService(userId);
+    const user = await fetchUserService(userId);
 
     if (!user) {
       req.session.destroy(() => {});
@@ -22,6 +23,17 @@ export const requireAuth = async (req, res, next) => {
         status: HTTP_STATUS_CODES.Unauthorized,
         message: "Utilisateur non trouvé",
         code: HTTP_STATUS_CODES.Unauthorized,
+        errors: { general: ["Utilisateur non trouvé"] },
+      });
+    }
+
+    if (user.isDeleted) {
+      req.session.destroy(() => {});
+      return error(res, {
+        status: HTTP_STATUS_CODES.Unauthorized,
+        message: "Compte désactivé",
+        code: HTTP_STATUS_CODES.Unauthorized,
+        errors: { general: ["Ce compte a été désactivé"] },
       });
     }
 
@@ -30,6 +42,7 @@ export const requireAuth = async (req, res, next) => {
         status: HTTP_STATUS_CODES.Unauthorized,
         message: "Email non vérifié",
         code: HTTP_STATUS_CODES.Unauthorized,
+        errors: { general: ["Email non vérifié"] },
       });
     }
 

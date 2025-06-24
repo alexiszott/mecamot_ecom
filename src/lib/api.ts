@@ -5,7 +5,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 export const api = axios.create({
   baseURL: `${API_URL}/api`,
   withCredentials: true,
-
   headers: {
     "Content-Type": "application/json",
   },
@@ -47,19 +46,9 @@ export const authService = {
     return response.data;
   },
 
-  checkAuth: async () => {
-    const response = await api.get("auth/check");
-    if (response.status === 200) {
-      return {
-        connected: true,
-        user: response.data.user,
-      };
-    } else {
-      return {
-        connected: false,
-        user: null,
-      };
-    }
+  me: async () => {
+    const response = await api.get("auth/me");
+    return response.data;
   },
 
   verify: async (token: string) => {
@@ -71,11 +60,6 @@ export const authService = {
 
   logout: async () => {
     const response = await api.post("auth/logout");
-    return response.data;
-  },
-
-  me: async () => {
-    const response = await api.get("auth/me");
     return response.data;
   },
 };

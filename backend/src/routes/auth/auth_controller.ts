@@ -6,12 +6,14 @@ import {
   sendVerifyTokenService,
   getTokenEntryService,
   deleteEmailVerificationTokenService,
-} from "../services/auth_service.js";
+  findUserByIdService,
+} from "./auth_service.js";
 import bcrypt from "bcrypt";
-import { HTTP_STATUS_CODES } from "../http_status_code.js";
-import { error, success } from "../utils/apiReponse.js";
-import { loginSchema, registerSchema } from "../utils/validate_schema.js";
+import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
+import { error, success } from "../../utils/apiReponse.js";
+import { loginSchema, registerSchema } from "../../utils/validate_schema.js";
 import crypto from "crypto";
+import { log } from "../../utils/logger.js";
 
 export const register = async (req, res, next) => {
   const result = registerSchema.safeParse({
@@ -24,6 +26,13 @@ export const register = async (req, res, next) => {
   });
 
   if (!result.success) {
+    log.error("register validation failed", {
+      ip: req.ip,
+      sessionId: req.sessionID,
+      userAgent: req.headers["user-agent"],
+      errors: result.error.flatten().fieldErrors,
+    });
+
     return error(res, {
       status: HTTP_STATUS_CODES.UnprocessableEntity,
       message: "Des champs sont invalides",
@@ -33,6 +42,13 @@ export const register = async (req, res, next) => {
   }
 
   if (result.data.password !== result.data.confirmPassword) {
+    log.error("register password mismatch", {
+      ip: req.ip,
+      sessionId: req.sessionID,
+      userAgent: req.headers["user-agent"],
+      email: result.data.email,
+    });
+
     return error(res, {
       status: HTTP_STATUS_CODES.UnprocessableEntity,
       message: "Les mots de passe ne correspondent pas",
@@ -43,6 +59,16 @@ export const register = async (req, res, next) => {
 
   try {
     const { email, password, firstname, lastname, phone } = result.data;
+
+    log.auth("Tentative d'inscription", {
+      email,
+      ip: req.ip,
+      sessionId: req.sessionID,
+      userAgent: req.headers["user-agent"],
+      firstname,
+      lastname,
+      phone,
+    });
 
     const exist = await isUserExistService(email);
 
@@ -55,7 +81,14 @@ export const register = async (req, res, next) => {
       });
     }
 
-    const hashed = await bcrypt.hash(password, 10);
+    log.auth("Email non trouvé, création de l'utilisateur", {
+      email,
+      ip: req.ip,
+      sessionId: req.sessionID,
+      userAgent: req.headers["user-agent"],
+    });
+
+    const hashed = await bcrypt.hash(password, 24);
 
     const user = await createUserService(
       email,
@@ -66,6 +99,13 @@ export const register = async (req, res, next) => {
     );
 
     if (!user) {
+      log.error("Échec de l'inscription", {
+        email,
+        ip: req.ip,
+        sessionId: req.sessionID,
+        userAgent: req.headers["user-agent"],
+      });
+
       return error(res, {
         status: HTTP_STATUS_CODES.UnprocessableEntity,
         message: "Echec de l'inscription",
@@ -80,8 +120,27 @@ export const register = async (req, res, next) => {
 
     await sendVerifyTokenService(userId, rawToken);
 
+    log.auth("Token de vérification envoyé", {
+      userId,
+      email: user.email,
+      ip: req.ip,
+      sessionId: req.sessionID,
+      userAgent: req.headers["user-agent"],
+    });
+
     const url = `http://localhost:3001/api/auth/verify?token=${rawToken}`;
     console.log(`Envoyer un email à ${user.email} avec le lien : ${url}`);
+
+    log.info("Inscription réussie, utilisateur créé", {
+      userId,
+      email: user.email,
+      ip: req.ip,
+      sessionId: req.sessionID,
+      userAgent: req.headers["user-agent"],
+      firstname: user.firstname,
+      lastname: user.lastname,
+      phone: user.phone,
+    });
 
     return success(
       res,
@@ -98,6 +157,13 @@ export const register = async (req, res, next) => {
       HTTP_STATUS_CODES.Created
     );
   } catch (error) {
+    log.error("Erreur inattendue lors de l'inscription", {
+      ip: req.ip,
+      sessionId: req.sessionID,
+      userAgent: req.headers["user-agent"],
+      error: error.message,
+      stack: error.stack,
+    });
     next(error);
   }
 };
@@ -152,9 +218,22 @@ export const login = async (req, res, next) => {
     }
 
     const { email, password, rememberMe } = result.data;
+
+    log.auth(`Tentative de connexion pour: ${email}`, {
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+      rememberMe,
+    });
+
     const user = await findUserByEmailService(email);
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
+      log.security("Échec de connexion - identifiants invalides", {
+        email,
+        ip: req.ip,
+        userAgent: req.headers["user-agent"],
+      });
+
       return error(res, {
         status: HTTP_STATUS_CODES.Unauthorized,
         message: "Email ou mot de passe incorrect",
@@ -165,6 +244,12 @@ export const login = async (req, res, next) => {
 
     // Check if email is verified
     if (!user?.isEmailVerified) {
+      log.auth("Tentative de connexion avec email non vérifié", {
+        userId: user.id,
+        email,
+        ip: req.ip,
+      });
+
       return error(res, {
         status: HTTP_STATUS_CODES.Unauthorized,
         message: "Email non vérifié",
@@ -182,57 +267,111 @@ export const login = async (req, res, next) => {
       req.session.cookie.maxAge = 1000 * 60 * 60 * 24;
     }
 
-    return success(
-      res,
-      {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstname: user.firstname,
-          lastname: user.lastname,
-          role: user.role,
+    log.auth("Connexion réussie", {
+      userId: user.id,
+      email: user.email,
+      ip: req.ip,
+      rememberMe,
+      sessionId: req.sessionID,
+    });
+
+    log.userAction("login", user.id, {
+      ip: req.ip,
+      rememberMe,
+    });
+
+    req.session.save((err) => {
+      if (err) {
+        return next(err);
+      }
+      console.log("Session après login:", req.session);
+      return success(
+        res,
+        {
+          user: {
+            id: user.id,
+            email: user.email,
+            firstname: user.firstname,
+            lastname: user.lastname,
+            role: user.role,
+          },
+          rememberMe: !!rememberMe,
         },
-        rememberMe: !!rememberMe,
-      },
-      "Connexion réussie"
-    );
+        "Connexion réussie"
+      );
+    });
   } catch (error) {
+    log.error("Erreur inattendue lors du login", {
+      ip: req.ip,
+      error: error.message,
+      stack: error.stack,
+    });
     next(error);
   }
 };
 
 export const logout = async (req, res, next) => {
   try {
+    const userId = req.session?.userId;
+
+    log.userAction("logout", userId || "unknown", {
+      ip: req.ip,
+      sessionId: req.sessionID,
+    });
+
     req.session.destroy((err) => {
       if (err) return next(err);
       res.clearCookie("connect.sid");
       return success(res, null, "Déconnexion réussie");
     });
+
+    log.auth("Déconnexion réussie", { userId, ip: req.ip });
   } catch (error) {
+    log.error("Erreur inattendue lors du logout", {
+      userId: req.session?.userId,
+      error: error.message,
+      stack: error.stack,
+    });
     next(error);
   }
 };
 
-export const checkAuth = async (req, res, next) => {
-  try {
-    const user = req.user;
+export const checkAuth = async (req, res) => {
+  console.log("Session reçue dans /me :", req.session);
 
-    return success(
-      res,
-      {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstname: user.firstname,
-          lastname: user.lastname,
-          phone: user.phone,
-          role: user.role,
-          isEmailVerified: user.isEmailVerified,
-        },
-      },
-      "Utilisateur authentifié"
-    );
-  } catch (error) {
-    next(error);
+  const userId = req.session?.userId;
+  if (!userId) {
+    return error(res, {
+      status: HTTP_STATUS_CODES.Unauthorized,
+      message: "Non autorisé - session manquante",
+      code: HTTP_STATUS_CODES.Unauthorized,
+      errors: { general: ["Non autorisé - session manquante"] },
+    });
   }
+
+  const user = await findUserByIdService(userId);
+
+  if (!user) {
+    return error(res, {
+      status: HTTP_STATUS_CODES.Unauthorized,
+      message: "Utilisateur non trouvé",
+      code: HTTP_STATUS_CODES.Unauthorized,
+      errors: { general: ["Utilisateur non trouvé"] },
+    });
+  }
+
+  return success(
+    res,
+    {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        phone: user.phone,
+        role: user.role,
+      },
+    },
+    "Utilisateur authentifié"
+  );
 };

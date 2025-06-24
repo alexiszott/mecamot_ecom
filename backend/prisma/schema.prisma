@@ -22,10 +22,11 @@ model User {
   emailVerifiedDate DateTime?
   password          String?
   role              Role      @default(USER)
+  isDeleted         Boolean   @default(false)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   accounts          Account[]
-  sessions          Session[]
+  orders            Order[]
   EmailVerificationToken EmailVerificationToken[]
 }
 
@@ -59,18 +60,76 @@ model EmailVerificationToken {
 }
 
 model Session {
-  id      String   @id @default(cuid())
-  userId  String
-  expires DateTime
-  user    User     @relation(fields: [userId], references: [id])
+  sid       String   @id
+  sess      Json
+  expire    DateTime
+  @@map("user_sessions")
+}
+
+// ORDER MANAGEMENT
+
+enum Status {
+  PENDING
+  PAID
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+model Order {
+  id                    String        @id @default(cuid())
+  userId                String    
+  quantity              Int   
+  status                Status        @default(PREPARING)
+  totalPrice            Decimal       @db.Decimal(10, 2)
+  stripePaymentIntentId String?   
+  isPaid                Boolean       @default(false)
+  paidAt                DateTime?
+  shippingAddress       String?
+  notes                 String?
+  orderItems            OrderItem[]
+  user                  User          @relation(fields: [userId], references: [id])
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+}
+
+model OrderItem {
+  id        String    @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal   @db.Decimal(10, 2)
+  createdAt DateTime  @default(now())
+
+  order     Order     @relation(fields: [orderId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  name        String
+  id          String      @id @default(cuid())
+  name String @unique
   description String
   price       Int
   stock       Int
   imageUrl    String
-  createdAt   DateTime @default(now())
+  slug        String      @unique
+  isPublished Boolean     @default(false)
+  sku         String?
+  brand       String?
+  isDeleted   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  categories  Categorie[] @relation("ProductCategories")
+  orderItems  OrderItem[]
+}
+
+model Categorie {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  isDeleted   Boolean   @default(false)
+  products    Product[] @relation("ProductCategories")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }

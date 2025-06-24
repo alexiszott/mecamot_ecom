@@ -5,9 +5,11 @@ export const success = (
   status = 200
 ) => {
   return res.status(status).json({
+    success: true,
     code: status,
     message,
     data,
+    timestamp: new Date().toISOString(),
   });
 };
 

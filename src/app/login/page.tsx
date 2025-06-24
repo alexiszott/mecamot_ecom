@@ -1,18 +1,8 @@
 "use client";
-
-import { useState } from "react";
-import { authService } from "../../lib/api";
-import { HttpStatusCode } from "axios";
-import {
-  LogIn,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  AlertCircle,
-  CheckCircle,
-} from "lucide-react";
-import test from "node:test";
+import { useEffect, useState } from "react";
+import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { useAuth } from "../context/auth_context";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -24,7 +14,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [response, setResponse] = useState<any>(null);
+  const { user, isLoggedIn, login } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      router.push("/home");
+    }
+  }, [isLoggedIn, user, router]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -42,21 +39,10 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setResponse(null);
-
     try {
-      const data = await authService.login(
-        formData.email,
-        formData.password,
-        formData.rememberMe
-      );
+      await login(formData.email, formData.password, formData.rememberMe);
 
-      if (data.code != HttpStatusCode.Ok) {
-        setError("Une erreur est survenue.");
-        return;
-      }
-
-      setResponse(data);
+      router.push("/home");
     } catch (err: any) {
       const apiError = err.response?.data;
       setError(apiError?.message || "Erreur de connexion avec le serveur");
@@ -64,35 +50,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
-  if (response) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Connexion réussie !
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Bienvenue ! Vous êtes maintenant connecté à votre espace
-              personnel.
-            </p>
-            <button
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              onClick={() => {
-                window.location.href = "/home";
-              }}
-            >
-              Accéder à mon compte
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -208,8 +165,7 @@ export default function LoginPage() {
 
               {/* Bouton de connexion */}
               <button
-                type="button"
-                onClick={handleSubmit}
+                type="submit"
                 disabled={loading}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
               >
@@ -279,8 +235,8 @@ export default function LoginPage() {
             <button
               onClick={() => {
                 setFormData({
-                  email: "admin@motoshop.fr",
-                  password: "admin123",
+                  email: "Alexzott545@gmail.com",
+                  password: "Azerty54&*",
                   rememberMe: false,
                 });
                 setError("");

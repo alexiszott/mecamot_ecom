@@ -1,20 +1,19 @@
-import { Router } from "express";
-import {
-  login,
-  register,
-  verifyUser,
-  me,
-  logout,
-  checkAuth,
-} from "../controllers/auth_controller.js";
-import { requireAuth } from "../middleware/auth_middleware.js";
+import { HTTP_STATUS_CODES } from "./http_status_code";
+import { error } from "./apiReponse";
+import { log } from "./logger";
 import rateLimit from "express-rate-limit";
-import { error } from "../utils/apiReponse.js";
-import { HTTP_STATUS_CODES } from "../http_status_code.js";
 
-const router = Router();
+export const rateLimitHandler = (customMessage?: string) => (req, res) => {
+  const message = customMessage || "Trop de requêtes";
 
-const rateLimitHandler = (customMessage?: string) => (req, res) => {
+  log.security("Rate limit dépassé", {
+    ip: req.ip,
+    path: req.path,
+    userAgent: req.headers["user-agent"],
+    email: req.body?.email,
+    message,
+  });
+
   return error(res, {
     status: HTTP_STATUS_CODES.TooManyRequests,
     message: customMessage || "Trop de tentatives. Réessayez plus tard.",
@@ -25,7 +24,7 @@ const rateLimitHandler = (customMessage?: string) => (req, res) => {
   });
 };
 
-const authLimiter = rateLimit({
+export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   standardHeaders: true,
@@ -37,7 +36,7 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
-const registerLimiter = rateLimit({
+export const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
   standardHeaders: true,
@@ -48,20 +47,9 @@ const registerLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
-const generalLimiter = rateLimit({
+export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   handler: rateLimitHandler("Trop de requêtes. Réessayez plus tard."),
   skipSuccessfulRequests: true,
 });
-
-// Public routes
-router.post("/signin", authLimiter, login);
-router.post("/signup", registerLimiter, register);
-router.post("/logout", generalLimiter, logout);
-router.get("/verify", generalLimiter, verifyUser);
-
-// Protected routes
-router.get("/me", requireAuth, checkAuth);
-
-export default router;
