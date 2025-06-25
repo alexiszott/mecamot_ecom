@@ -28,7 +28,7 @@ export const fetchProductsService = async (query: any) => {
     where,
     orderBy,
     include: {
-      category: true,
+      categories: true,
     },
   });
 };
@@ -37,8 +37,7 @@ export const fetchProductService = async (id: string) => {
   return await prismaPaginate.product.findUnique({
     where: { id },
     include: {
-      category: true,
-      // images: true,
+      categories: true,
     },
   });
 };
@@ -47,7 +46,7 @@ export const createProductService = async (data: any) => {
   return await prismaPaginate.product.create({
     data,
     include: {
-      category: true,
+      categories: true,
     },
   });
 };
@@ -57,7 +56,7 @@ export const updateProductService = async (id: string, data: any) => {
     where: { id },
     data,
     include: {
-      category: true,
+      categories: true,
     },
   });
 };

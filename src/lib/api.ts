@@ -72,3 +72,51 @@ export const sessionService = {
     return response.data;
   },
 };
+
+export const productService = {
+  fetchProducts: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    categories?: string;
+    status?: string;
+    stockFilter?: string;
+  }) => {
+    const response = await api.get("products/", {
+      params: {
+        page: params?.page || 1,
+        limit: params?.limit || 10,
+        search: params?.search || "",
+        categories: params?.categories || "",
+        status: params?.status || "",
+        stockFilter: params?.stockFilter || "",
+      },
+    });
+    return response.data;
+  },
+
+  fetchProduct: async (id: string) => {
+    const response = await api.get(`products/${id}`);
+    return response.data;
+  },
+
+  createProduct: async (productData: any) => {
+    const response = await api.post("products/", productData);
+    return response.data;
+  },
+
+  updateProduct: async (id: string, productData: any) => {
+    const response = await api.put(`products/${id}`, productData);
+    return response.data;
+  },
+
+  archiveProduct: async (id: string) => {
+    const response = await api.patch(`products/${id}/archive`);
+    return response.data;
+  },
+
+  restoreProduct: async (id: string) => {
+    const response = await api.patch(`products/${id}/restore`);
+    return response.data;
+  },
+};

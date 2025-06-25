@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./routes/auth/auth_routes.js";
 import userRoutes from "./routes/user/user_routes.js";
-import adminRoutes from "./routes/admin/admin_routes.js";
 import productRoutes from "./routes/product/product_routes.js";
 
 import { PrismaClient } from "@prisma/client";
@@ -75,7 +74,6 @@ app.use(requestLogger);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/admin", adminRoutes);
 app.use("/api/products", productRoutes);
 
 // API START

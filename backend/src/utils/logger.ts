@@ -43,7 +43,6 @@ const logFormat = winston.format.combine(
   })
 );
 
-// Format console
 const consoleFormat = winston.format.combine(
   winston.format.colorize({ all: true }),
   winston.format.timestamp({ format: "HH:mm:ss" }),
@@ -91,7 +90,7 @@ const transports: winston.transport[] = [
     filename: path.join(process.cwd(), "logs", "security-%DATE%.log"),
     datePattern: "YYYY-MM-DD",
     maxSize: "20m",
-    maxFiles: "90d", // Garder plus longtemps pour la sécurité
+    maxFiles: "90d",
     format: logFormat,
     level: "security",
   }),

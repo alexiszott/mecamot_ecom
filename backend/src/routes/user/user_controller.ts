@@ -2,203 +2,142 @@ import { $Enums } from "@prisma/client";
 import { success } from "../../utils/apiReponse.js";
 import { log } from "../../utils/logger.js";
 import {
+  deleteUserService,
   fetchUserService,
-  fetchUsersService,
-  softDeleteUserService,
   updateUserService,
 } from "./user_service.js";
 import { error } from "console";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
 
 export const fetchUsers = async (req, res, next) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const skip = (page - 1) * limit;
-
-  if (!req.isAdmin) {
-    return error(res, {
-      status: HTTP_STATUS_CODES.Forbidden,
-      message: "Access denied - Admins only",
-      code: HTTP_STATUS_CODES.Forbidden,
-      errors: { general: ["Access denied - Admins only"] },
-    });
-  }
-
   try {
-    log.info(`Fetching users - Page: ${page}, Limit: ${limit}, Skip: ${skip}`, {
+    log.info("Récupération des produits", {
+      query: req.query,
+      userId: req.session?.userId,
       ip: req.ip,
-      sessionId: req.sessionID,
-      userAgent: req.headers["user-agent"],
     });
 
-    const [users, totalUsers] = await fetchUsersService(limit, skip);
+    const result = await fetchUserService(req.query);
 
-    log.info(`Fetched ${users.length} users out of ${totalUsers} total users`, {
-      ip: req.ip,
-      sessionId: req.sessionID,
-      userAgent: req.headers["user-agent"],
-      pagination: {
-        page,
-        limit,
-        totalPages: Math.ceil(totalUsers / limit),
-      },
+    log.info("Produits récupérés avec succès", {
+      totalItems: result.pagination.totalItems,
+      currentPage: result.pagination.currentPage,
+      userId: req.session?.userId,
     });
 
-    return success(res, {
-      status: HTTP_STATUS_CODES.OK,
-      message: "Users fetched successfully",
-      code: HTTP_STATUS_CODES.OK,
-      data: {
-        users,
-        totalUsers,
-        page,
-        limit,
-      },
+    return success(res, result, "Produits récupérés avec succès");
+  } catch (err: any) {
+    log.error("Erreur lors de la récupération des produits", {
+      error: err.message,
+      query: req.query,
+      userId: req.session?.userId,
     });
-  } catch (error) {
-    log.error("Error fetching users", {
-      ip: req.ip,
-      sessionId: req.sessionID,
-      userAgent: req.headers["user-agent"],
-      error: error.message,
-      stack: error.stack,
+
+    return error(res, {
+      status: HTTP_STATUS_CODES.InternalServerError,
+      message: "Erreur lors de la récupération des produits",
+      code: HTTP_STATUS_CODES.InternalServerError,
+      errors: { general: ["Erreur interne du serveur"] },
     });
-    next(error);
   }
 };
 
 export const fetchUser = async (req, res, next) => {
-  const userId = req.query.id;
-
-  if (!req.isAdmin) {
-    return error(res, {
-      status: HTTP_STATUS_CODES.Forbidden,
-      message: "Access denied - Admins only",
-      code: HTTP_STATUS_CODES.Forbidden,
-      errors: { general: ["Access denied - Admins only"] },
-    });
-  }
-
   try {
-    log.info(`Fetching user - id: ${req.query.id}`, {
+    const { id } = req.params;
+
+    log.info("Récupération d'un produit", {
+      productId: id,
+      userId: req.session?.userId,
       ip: req.ip,
-      sessionId: req.sessionID,
-      userAgent: req.headers["user-agent"],
     });
 
-    const user = await fetchUserService(userId);
+    const product = await fetchUserService(id);
 
-    log.info(`Fetched ${user?.id}`, {
-      ip: req.ip,
-      sessionId: req.sessionID,
-      userAgent: req.headers["user-agent"],
-      userId,
-    });
-
-    if (!user) {
+    if (!product) {
       return error(res, {
         status: HTTP_STATUS_CODES.NotFound,
-        message: "User not found",
+        message: "Produit non trouvé",
         code: HTTP_STATUS_CODES.NotFound,
-        errors: { general: ["User not found"] },
+        errors: { general: ["Le produit demandé n'existe pas"] },
       });
     }
 
-    return success(res, {
-      status: HTTP_STATUS_CODES.OK,
-      message: "Users fetched successfully",
-      code: HTTP_STATUS_CODES.OK,
-      data: {
-        user,
-      },
-    });
-  } catch (error) {
-    log.error("Error fetching users", {
-      ip: req.ip,
-      sessionId: req.sessionID,
-      userAgent: req.headers["user-agent"],
-      error: error.message,
-      stack: error.stack,
-    });
-    next(error);
-  }
-};
-
-export const deleteUser = async (req, res, next) => {
-  const userId = req.params.id;
-
-  if (!req.isAdmin) {
-    return error(res, {
-      status: HTTP_STATUS_CODES.Forbidden,
-      message: "Access denied - Admins only",
-      code: HTTP_STATUS_CODES.Forbidden,
-      errors: { general: ["Access denied - Admins only"] },
-    });
-  }
-
-  try {
-    const user = await softDeleteUserService(userId);
-
-    if (!user) {
-      return error(res, {
-        status: HTTP_STATUS_CODES.NotFound,
-        message: "User not found",
-        code: HTTP_STATUS_CODES.NotFound,
-        errors: { general: ["User not found"] },
-      });
-    }
-
-    return success(res, {
-      status: HTTP_STATUS_CODES.OK,
-      message: "User deleted (archived) successfully",
-      code: HTTP_STATUS_CODES.OK,
-      data: { user },
-    });
-  } catch (err) {
-    log.error("Error deleting user", {
+    return success(res, { product }, "Produit récupéré avec succès");
+  } catch (err: any) {
+    log.error("Erreur lors de la récupération du produit", {
       error: err.message,
-      stack: err.stack,
+      productId: req.params.id,
+      userId: req.session?.userId,
     });
-    next(err);
+
+    return error(res, {
+      status: HTTP_STATUS_CODES.InternalServerError,
+      message: "Erreur lors de la récupération du produit",
+      code: HTTP_STATUS_CODES.InternalServerError,
+      errors: { general: ["Erreur interne du serveur"] },
+    });
   }
 };
 
 export const updateUser = async (req, res, next) => {
-  const userId = req.params.id;
-  const updates = req.body;
+  try {
+    const { id } = req.params;
 
-  if (!req.isAdmin) {
+    log.userAction("update_product", req.user?.id, {
+      productId: id,
+      updateData: req.body,
+      ip: req.ip,
+    });
+
+    const product = await updateUserService(id, req.body);
+
+    return success(res, { product }, "Produit mis à jour avec succès");
+  } catch (err: any) {
+    log.error("Erreur lors de la mise à jour du produit", {
+      error: err.message,
+      productId: req.params.id,
+      adminId: req.user?.id,
+    });
+
     return error(res, {
-      status: HTTP_STATUS_CODES.Forbidden,
-      message: "Access denied - Admins only",
-      code: HTTP_STATUS_CODES.Forbidden,
-      errors: { general: ["Access denied - Admins only"] },
+      status: HTTP_STATUS_CODES.InternalServerError,
+      message: "Erreur lors de la mise à jour du produit",
+      code: HTTP_STATUS_CODES.InternalServerError,
+      errors: { general: ["Erreur interne du serveur"] },
     });
   }
+};
 
+export const deleteUser = async (req, res, next) => {
   try {
-    const user = await updateUserService(userId, updates);
+    const { id } = req.params;
 
-    if (!user) {
-      return error(res, {
-        status: HTTP_STATUS_CODES.NotFound,
-        message: "User not found",
-        code: HTTP_STATUS_CODES.NotFound,
-        errors: { general: ["User not found"] },
-      });
-    }
-
-    return success(res, {
-      status: HTTP_STATUS_CODES.OK,
-      message: "User updated successfully",
-      code: HTTP_STATUS_CODES.OK,
-      data: { user },
+    log.userAction("delete_product", req.user?.id, {
+      productId: id,
+      ip: req.ip,
     });
-  } catch (err) {
-    log.error("Error updating user", {
+
+    await deleteUserService(id);
+
+    log.info("Produit supprimé avec succès", {
+      productId: id,
+      adminId: req.user?.id,
+    });
+
+    return success(res, null, "Produit supprimé avec succès");
+  } catch (err: any) {
+    log.error("Erreur lors de la suppression du produit", {
       error: err.message,
-      stack: err.stack,
+      productId: req.params.id,
+      adminId: req.user?.id,
     });
-    next(err);
+
+    return error(res, {
+      status: HTTP_STATUS_CODES.InternalServerError,
+      message: "Erreur lors de la suppression du produit",
+      code: HTTP_STATUS_CODES.InternalServerError,
+      errors: { general: ["Erreur interne du serveur"] },
+    });
   }
 };

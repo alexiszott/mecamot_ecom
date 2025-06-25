@@ -11,42 +11,19 @@ import {
 import bcrypt from "bcrypt";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
 import { error, success } from "../../utils/apiReponse.js";
-import { loginSchema, registerSchema } from "../../utils/validate_schema.js";
 import crypto from "crypto";
 import { log } from "../../utils/logger.js";
 
 export const register = async (req, res, next) => {
-  const result = registerSchema.safeParse({
-    email: req.body.email,
-    password: req.body.password,
-    firstname: req.body.firstname,
-    lastname: req.body.lastname,
-    phone: req.body.phone,
-    confirmPassword: req.body.confirmPassword,
-  });
+  const { email, password, confirmPassword, firstname, lastname, phone } =
+    req.body;
 
-  if (!result.success) {
-    log.error("register validation failed", {
-      ip: req.ip,
-      sessionId: req.sessionID,
-      userAgent: req.headers["user-agent"],
-      errors: result.error.flatten().fieldErrors,
-    });
-
-    return error(res, {
-      status: HTTP_STATUS_CODES.UnprocessableEntity,
-      message: "Des champs sont invalides",
-      code: HTTP_STATUS_CODES.UnprocessableEntity,
-      errors: result.error.flatten().fieldErrors,
-    });
-  }
-
-  if (result.data.password !== result.data.confirmPassword) {
+  if (password !== confirmPassword) {
     log.error("register password mismatch", {
       ip: req.ip,
       sessionId: req.sessionID,
       userAgent: req.headers["user-agent"],
-      email: result.data.email,
+      email: email,
     });
 
     return error(res, {
@@ -58,8 +35,6 @@ export const register = async (req, res, next) => {
   }
 
   try {
-    const { email, password, firstname, lastname, phone } = result.data;
-
     log.auth("Tentative d'inscription", {
       email,
       ip: req.ip,
@@ -88,7 +63,7 @@ export const register = async (req, res, next) => {
       userAgent: req.headers["user-agent"],
     });
 
-    const hashed = await bcrypt.hash(password, 24);
+    const hashed = await bcrypt.hash(password, 16);
 
     const user = await createUserService(
       email,
@@ -129,7 +104,14 @@ export const register = async (req, res, next) => {
     });
 
     const url = `http://localhost:3001/api/auth/verify?token=${rawToken}`;
-    console.log(`Envoyer un email à ${user.email} avec le lien : ${url}`);
+
+    log.info("Lien de vérification envoyé par email", {
+      userId,
+      url: url,
+      ip: req.ip,
+      sessionId: req.sessionID,
+      userAgent: req.headers["user-agent"],
+    });
 
     log.info("Inscription réussie, utilisateur créé", {
       userId,
@@ -206,18 +188,7 @@ export const verifyUser = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const result = loginSchema.safeParse(req.body);
-
-    if (!result.success) {
-      return error(res, {
-        status: HTTP_STATUS_CODES.UnprocessableEntity,
-        message: "Des champs sont invalides",
-        code: HTTP_STATUS_CODES.UnprocessableEntity,
-        errors: result.error.flatten().fieldErrors,
-      });
-    }
-
-    const { email, password, rememberMe } = result.data;
+    const { email, password, rememberMe } = req.body;
 
     log.auth(`Tentative de connexion pour: ${email}`, {
       ip: req.ip,
@@ -242,7 +213,6 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // Check if email is verified
     if (!user?.isEmailVerified) {
       log.auth("Tentative de connexion avec email non vérifié", {
         userId: user.id,
@@ -284,7 +254,6 @@ export const login = async (req, res, next) => {
       if (err) {
         return next(err);
       }
-      console.log("Session après login:", req.session);
       return success(
         res,
         {
@@ -337,9 +306,8 @@ export const logout = async (req, res, next) => {
 };
 
 export const checkAuth = async (req, res) => {
-  console.log("Session reçue dans /me :", req.session);
-
   const userId = req.session?.userId;
+
   if (!userId) {
     return error(res, {
       status: HTTP_STATUS_CODES.Unauthorized,

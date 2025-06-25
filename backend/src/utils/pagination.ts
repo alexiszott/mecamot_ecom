@@ -153,8 +153,8 @@ export function buildSearchFilter(query: any, searchFields: string[] = []) {
   }
 
   // Filtres spécifiques
-  if (query.category) {
-    where.category = query.category;
+  if (query.categories) {
+    where.categories = query.categories;
   }
 
   if (query.status) {

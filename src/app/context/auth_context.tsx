@@ -2,7 +2,6 @@
 
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { authService } from "../../lib/api";
-import { set } from "react-hook-form";
 
 interface User {
   id: string;
@@ -10,13 +9,13 @@ interface User {
   firstname: string;
   lastname: string;
   phone?: string;
-  role: string;
 }
 
 type AuthContextType = {
   isLoggedIn: boolean;
   user: User | null;
   loading: boolean;
+  isAdmin: boolean;
   login: (
     email: string,
     password: string,
@@ -73,14 +72,8 @@ export const AuthProvider = ({ children }) => {
     setIsLoggedIn(false);
 
     try {
-      console.log("Tentative de connexion avec:", {
-        email,
-        password,
-        rememberMe,
-      });
       const response = await authService.login(email, password, rememberMe);
 
-      console.log("Réponse de connexion:", response);
       if (response.success && response.data.user) {
         setUser(response.data.user);
         setIsLoggedIn(true);

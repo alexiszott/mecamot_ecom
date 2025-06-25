@@ -18,8 +18,6 @@ export const fetchProducts = async (req, res, next) => {
       ip: req.ip,
     });
 
-    // VERIFICATION ZOD
-
     const result = await fetchProductsService(req.query);
 
     log.info("Produits récupérés avec succès", {
