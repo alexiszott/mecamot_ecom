@@ -1,4 +1,3 @@
-import { $Enums } from "@prisma/client";
 import { success } from "../../utils/apiReponse.js";
 import { log } from "../../utils/logger.js";
 import {
@@ -6,7 +5,6 @@ import {
   fetchUserService,
   updateUserService,
 } from "./user_service.js";
-import { error } from "console";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
 
 export const fetchUsers = async (req, res, next) => {

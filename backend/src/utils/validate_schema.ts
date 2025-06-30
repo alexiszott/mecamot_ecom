@@ -135,7 +135,7 @@ export const searchSchema = z.object({
 });
 
 export const productFiltersSchema = z.object({
-  categories: z
+  category: z
     .string()
     .optional()
     .refine(
@@ -262,6 +262,77 @@ export const productQuerySchema = paginationSchema
 
 export const productParamsSchema = z.object({
   id: z.string().min(1, "ID requis").max(100, "ID trop long"),
+});
+
+export const productBodyArchiveSchema = z.object({
+  ids: z
+    .array(z.string())
+    .min(1, "Au moins un ID est requis")
+    .max(100, "Trop d'IDs, maximum 100")
+    .transform((ids) => ids.map((id) => id.trim())),
+});
+
+export const productBodySchema = z.object({
+  name: z
+    .string()
+    .min(2, { message: "Le nom doit contenir au moins 2 caractères." })
+    .max(100, { message: "Le nom ne peut pas dépasser 100 caractères." })
+    .trim(),
+
+  description: z
+    .string()
+    .max(500, {
+      message: "La description ne peut pas dépasser 500 caractères.",
+    })
+    .trim()
+    .optional(),
+
+  price: z
+    .string()
+    .transform((val) => val.replace(",", "."))
+    .transform((val) => parseFloat(val))
+    .refine((val) => !isNaN(val), {
+      message: "Le prix doit être un nombre valide.",
+    })
+    .refine((val) => val >= 0, {
+      message: "Le prix doit être supérieur ou égal à 0.",
+    })
+    .refine((val) => val <= 999999, {
+      message: "Le prix ne peut pas dépasser 999999.",
+    })
+    .transform((val) => Number(val.toFixed(2))),
+
+  stock: z
+    .string()
+    .transform((val) => Number(val))
+    .refine((val) => !isNaN(val), {
+      message: "Le stock doit être un nombre valide.",
+    })
+    .refine((val) => val >= 0, {
+      message: "Le prix doit être supérieur ou égal à 0.",
+    })
+    .refine((val) => val <= 9999, {
+      message: "Le prix ne peut pas dépasser 9999.",
+    }),
+
+  brand: z
+    .string()
+    .max(50, { message: "La marque ne peut pas dépasser 50 caractères." })
+    .optional()
+    .transform((str) => str?.trim()),
+
+  images: z
+    .array(
+      z
+        .string()
+        .url({ message: "L'URL de l'image doit être valide." })
+        .max(2000, {
+          message: "L'URL de l'image ne peut pas dépasser 2000 caractères.",
+        })
+    )
+    .optional(),
+
+  isPublished: z.boolean().optional().default(false),
 });
 
 export const userQuerySchema = paginationSchema

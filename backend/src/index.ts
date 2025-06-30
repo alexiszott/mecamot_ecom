@@ -4,6 +4,8 @@ import cors from "cors";
 import authRoutes from "./routes/auth/auth_routes.js";
 import userRoutes from "./routes/user/user_routes.js";
 import productRoutes from "./routes/product/product_routes.js";
+import statsRoutes from "./routes/stats/stats_routes.js";
+import categoryRoutes from "./routes/category/category_routes.js";
 
 import { PrismaClient } from "@prisma/client";
 import { errorHandler } from "./middleware/error_handler_middleware";
@@ -27,7 +29,7 @@ app.use(
         ? "https://votre-domaine.com"
         : "http://localhost:3000",
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type"],
     optionsSuccessStatus: 200,
   })
@@ -75,6 +77,8 @@ app.use(requestLogger);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/stats", statsRoutes);
 
 // API START
 

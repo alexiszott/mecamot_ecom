@@ -3,10 +3,11 @@ export interface Product {
   name: string;
   price: number;
   stock: number;
-  categories: string;
-  status: "active" | "archived" | "draft";
+  category: string;
+  publish: boolean;
+  brand?: string;
   image?: string;
-  description: string;
+  description?: string;
   created_at: string;
   updated_at: string;
 }

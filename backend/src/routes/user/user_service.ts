@@ -5,6 +5,7 @@ import {
   extractPaginationParams,
   prismaPaginate,
 } from "../../utils/pagination";
+import { prisma } from "../../prismaClient.js";
 
 export const fetchUsersService = async (query: any) => {
   const paginationOptions = extractPaginationParams(query);
@@ -28,20 +29,20 @@ export const fetchUsersService = async (query: any) => {
 };
 
 export const fetchUserService = async (id: string) => {
-  return await prismaPaginate.user.findUnique({
+  return await prisma.user.findUnique({
     where: { id },
   });
 };
 
 export const updateUserService = async (id: string, data: any) => {
-  return await prismaPaginate.user.update({
+  return await prisma.user.update({
     where: { id },
     data,
   });
 };
 
 export const deleteUserService = async (id: string) => {
-  return await prismaPaginate.user.delete({
+  return await prisma.user.delete({
     where: { id },
   });
 };

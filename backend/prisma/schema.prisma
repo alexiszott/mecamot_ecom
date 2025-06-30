@@ -108,19 +108,20 @@ model OrderItem {
 
 model Product {
   id          String      @id @default(cuid())
-  name String @unique
-  description String
-  price       Int
+  name        String      
+  description String?
+  price       Decimal     @db.Decimal(10, 2)
   stock       Int
-  imageUrl    String
+  imageUrl    String?
   slug        String      @unique
   isPublished Boolean     @default(false)
   sku         String?
   brand       String?
+  categoryid  String?
   isDeleted   Boolean     @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
-  categories  Category[]  @relation("ProductCategories")
+  category    Category?   @relation(fields: [categoryid], references: [id])
   orderItems  OrderItem[]
 }
 
@@ -129,7 +130,8 @@ model Category {
   name        String    @unique
   description String?
   isDeleted   Boolean   @default(false)
-  products    Product[] @relation("ProductCategories")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  Product Product[]
 }

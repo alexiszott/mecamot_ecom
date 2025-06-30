@@ -33,6 +33,14 @@ export default function Landing() {
             Aller a la page d'accueil
           </Link>
         </div>
+        <div className="space-y-4">
+          <Link
+            href="/backoffice/dashboard"
+            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Backoffice
+          </Link>
+        </div>
       </div>
     </main>
   );

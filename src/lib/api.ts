@@ -73,12 +73,26 @@ export const sessionService = {
   },
 };
 
+export const statsService = {
+  productsStats: async () => {
+    const response = await api.get("stats/products-stats");
+    return response.data;
+  },
+};
+
+export const categoriesService = {
+  fetchCategories: async () => {
+    const response = await api.get("categories/");
+    return response.data;
+  },
+};
+
 export const productService = {
   fetchProducts: async (params?: {
     page?: number;
     limit?: number;
     search?: string;
-    categories?: string;
+    category?: string;
     status?: string;
     stockFilter?: string;
   }) => {
@@ -87,7 +101,7 @@ export const productService = {
         page: params?.page || 1,
         limit: params?.limit || 10,
         search: params?.search || "",
-        categories: params?.categories || "",
+        category: params?.category || "",
         status: params?.status || "",
         stockFilter: params?.stockFilter || "",
       },
@@ -107,6 +121,12 @@ export const productService = {
 
   updateProduct: async (id: string, productData: any) => {
     const response = await api.put(`products/${id}`, productData);
+    return response.data;
+  },
+
+  archiveProducts: async (ids: string[]) => {
+    console.log("Archiving products with IDs:", ids);
+    const response = await api.patch("products/archive", { ids });
     return response.data;
   },
 

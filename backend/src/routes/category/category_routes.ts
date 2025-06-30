@@ -1,12 +1,11 @@
 import { Router } from "express";
 import {
-  createProduct,
-  archiveProduct,
-  archiveProducts,
-  fetchProduct,
-  fetchProducts,
-  updateProduct,
-} from "./order_controller.js";
+  archiveCategory,
+  createCategory,
+  fetchCategories,
+  fetchCategory,
+  updateCategory,
+} from "./category_controller.js";
 import { requireAdmin } from "../../middleware/admin_middleware.js";
 import { requireAuth } from "../../middleware/auth_middleware.js";
 import {
@@ -23,8 +22,9 @@ import {
 const router = Router();
 
 // Public routes
-router.get("/", validateQuery(productQuerySchema), fetchOrders);
-router.get("/:id", requireAuth, validateQuery(productQuerySchema), fetchOrder);
+
+router.get("/", fetchCategories);
+router.get("/:id", validateQuery(productQuerySchema), fetchCategory);
 
 // Protected routes
 
@@ -33,7 +33,7 @@ router.post(
   requireAuth,
   requireAdmin,
   validateBody(productBodySchema),
-  createOrder
+  createCategory
 );
 
 router.put(
@@ -42,15 +42,15 @@ router.put(
   requireAdmin,
   validateParams(productParamsSchema),
   validateBody(productBodySchema),
-  updateOrder
+  updateCategory
 );
 
-router.patch(
-  "/:id/archive",
+router.delete(
+  "/:id",
   requireAuth,
   requireAdmin,
   validateParams(productParamsSchema),
-  archiveOrder
+  archiveCategory
 );
 
 export default router;

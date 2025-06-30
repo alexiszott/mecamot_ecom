@@ -1,7 +1,8 @@
 import { Router } from "express";
 import {
-  addProduct,
-  deleteProduct,
+  createProduct,
+  archiveProduct,
+  archiveProducts,
   fetchProduct,
   fetchProducts,
   updateProduct,
@@ -11,10 +12,12 @@ import { requireAuth } from "../../middleware/auth_middleware.js";
 import {
   validateQuery,
   validateParams,
+  validateBody,
 } from "../../middleware/query_validation.js";
 import {
   productQuerySchema,
   productParamsSchema,
+  productBodySchema,
 } from "../../utils/validate_schema.js";
 
 const router = Router();
@@ -28,23 +31,34 @@ router.get("/:slug", validateQuery(productQuerySchema), fetchProduct);
 router.post(
   "/",
   requireAuth,
-  requireAdmin /*validateBody(productParamsSchema),*/,
-  addProduct
+  requireAdmin,
+  validateBody(productBodySchema),
+  createProduct
 );
+
 router.put(
   "/:id",
   requireAuth,
   requireAdmin,
   validateParams(productParamsSchema),
-  // validateBody(productParamsSchema), // Assuming you have a schema for the body
+  validateBody(productBodySchema),
   updateProduct
 );
-router.delete(
-  "/:id",
+
+router.patch(
+  "/:id/archive",
   requireAuth,
   requireAdmin,
   validateParams(productParamsSchema),
-  deleteProduct
+  archiveProduct
+);
+
+router.patch(
+  "/archive",
+  requireAuth,
+  requireAdmin,
+  //validateBody(productBodyArchiveSchema),
+  archiveProducts
 );
 
 export default router;

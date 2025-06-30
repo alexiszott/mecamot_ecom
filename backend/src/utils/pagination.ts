@@ -22,8 +22,8 @@ interface PaginatedResult<T> {
     totalPages: number;
     totalItems: number;
     itemsPerPage: number;
-    hasNext: boolean;
-    hasPrev: boolean;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
     nextPage: number | null;
     prevPage: number | null;
   };
@@ -72,7 +72,6 @@ export async function paginate<T>(
   }
 
   try {
-    // Requête pour les données avec pagination
     const queryOptions: any = {
       skip: calculatedSkip,
       take: limit,
@@ -80,23 +79,20 @@ export async function paginate<T>(
       where,
     };
 
-    // Ajouter include ou select si fourni
     if (include) queryOptions.include = include;
     if (select) queryOptions.select = select;
 
-    // Exécuter les requêtes en parallèle
     const [data, totalItems] = await Promise.all([
       model.findMany(queryOptions),
       model.count({ where }),
     ]);
 
-    // Calculer les métadonnées de pagination
     const totalPages = Math.ceil(totalItems / limit);
     const currentPage = page;
-    const hasNext = currentPage < totalPages;
-    const hasPrev = currentPage > 1;
-    const nextPage = hasNext ? currentPage + 1 : null;
-    const prevPage = hasPrev ? currentPage - 1 : null;
+    const hasNextPage = currentPage < totalPages;
+    const hasPrevPage = currentPage > 1;
+    const nextPage = hasNextPage ? currentPage + 1 : null;
+    const prevPage = hasPrevPage ? currentPage - 1 : null;
 
     return {
       data,
@@ -105,8 +101,8 @@ export async function paginate<T>(
         totalPages,
         totalItems,
         itemsPerPage: limit,
-        hasNext,
-        hasPrev,
+        hasNextPage,
+        hasPrevPage,
         nextPage,
         prevPage,
       },
@@ -142,6 +138,11 @@ export function extractPaginationParams(query: any): PaginationOptions {
 export function buildSearchFilter(query: any, searchFields: string[] = []) {
   const where: any = {};
 
+  // ✅ Filtrer par défaut les éléments supprimés
+  if (query.isDeleted !== undefined) {
+    where.isDeleted = query.isDeleted;
+  }
+
   // Recherche générale
   if (query.search && searchFields.length > 0) {
     where.OR = searchFields.map((field) => ({
@@ -153,8 +154,10 @@ export function buildSearchFilter(query: any, searchFields: string[] = []) {
   }
 
   // Filtres spécifiques
-  if (query.categories) {
-    where.categories = query.categories;
+  if (query.category && query.category !== "all") {
+    where.category = {
+      name: query.category,
+    };
   }
 
   if (query.status) {
@@ -176,6 +179,20 @@ export function buildSearchFilter(query: any, searchFields: string[] = []) {
 
   if (query.endDate) {
     where.createdAt = { ...where.createdAt, lte: new Date(query.endDate) };
+  }
+
+  if (query.stockFilter) {
+    switch (query.stockFilter) {
+      case "out":
+        where.stock = 0;
+        break;
+      case "low":
+        where.stock = { gt: 0, lte: 5 };
+        break;
+      case "available":
+        where.stock = { gt: 5 };
+        break;
+    }
   }
 
   return where;

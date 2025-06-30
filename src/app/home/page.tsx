@@ -3,9 +3,11 @@ import { User } from "lucide-react";
 import { useAuth } from "../context/auth_context";
 import { authService } from "../../lib/api";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const { user, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -53,6 +55,12 @@ export default function Home() {
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Se déconnecter
+          </button>
+          <button
+            onClick={router.push.bind(null, "/backoffice/dashboard")}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            BackOffice
           </button>
         </div>
       </div>

@@ -4,7 +4,8 @@ import {
   fetchProductService,
   createProductService,
   updateProductService,
-  deleteProductService,
+  archiveProductsService,
+  archiveProductService,
 } from "./product_service.js";
 import { success, error } from "../../utils/apiReponse.js";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
@@ -81,13 +82,39 @@ export const fetchProduct = async (req, res, next) => {
   }
 };
 
-export const addProduct = async (req, res, next) => {
+export const createProduct = async (req, res, next) => {
   try {
-    // Ici vous ajouteriez la validation Zod
     log.userAction("create_product", req.user?.id, {
       productData: req.body,
       ip: req.ip,
     });
+
+    const slug = req.body.name
+      .toLowerCase()
+      .normalize("NFD") // enlève les accents (é → e)
+      .replace(/[\u0300-\u036f]/g, "") // supprime les diacritiques
+      .replace(/[^a-z0-9\s-]/g, "") // enlève les caractères spéciaux sauf tirets/espaces
+      .trim()
+      .replace(/\s+/g, "-") // remplace les espaces par des tirets
+      .replace(/-+/g, "-") // supprime les tirets multiples
+      .slice(0, 100);
+
+    console.log("Slug généré :", slug);
+
+    req.body.slug = slug;
+
+    const prefix = req.body.name
+      .toUpperCase()
+      .normalize("NFD") // supprime accents
+      .replace(/[\u0300-\u036f]/g, "") // ex: É → E
+      .replace(/[^A-Z0-9]/g, "") // enlève tout sauf lettres/chiffres
+      .slice(0, 5); // on prend les 5 premiers caractères
+
+    const random = Math.floor(1000 + Math.random() * 9000);
+
+    const sku = `${prefix}-${random}`;
+
+    req.body.sku = sku;
 
     const product = await createProductService(req.body);
 
@@ -142,7 +169,44 @@ export const updateProduct = async (req, res, next) => {
   }
 };
 
-export const deleteProduct = async (req, res, next) => {
+// Function to archive X products
+
+export const archiveProducts = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+
+    log.userAction("delete bulk products", req.user?.id, {
+      productId: ids,
+      ip: req.ip,
+    });
+
+    await archiveProductsService(ids);
+
+    log.info("Produits supprimés avec succès", {
+      productId: ids,
+      adminId: req.user?.id,
+    });
+
+    return success(res, null, "Produits supprimés avec succès");
+  } catch (err: any) {
+    log.error("Erreur lors de la suppression des produits", {
+      error: err.message,
+      productId: req.params.id,
+      adminId: req.user?.id,
+    });
+
+    return error(res, {
+      status: HTTP_STATUS_CODES.InternalServerError,
+      message: "Erreur lors de la suppression des produits",
+      code: HTTP_STATUS_CODES.InternalServerError,
+      errors: { general: ["Erreur interne du serveur"] },
+    });
+  }
+};
+
+// Function to archive 1 product
+
+export const archiveProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -151,7 +215,7 @@ export const deleteProduct = async (req, res, next) => {
       ip: req.ip,
     });
 
-    await deleteProductService(id);
+    await archiveProductService(id);
 
     log.info("Produit supprimé avec succès", {
       productId: id,
