@@ -81,14 +81,49 @@ export const statsService = {
 };
 
 export const categoriesService = {
+  fetchPaginatedCategories: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => {
+    const response = await api.get("categories/paginated", {
+      params: {
+        page: params?.page || 1,
+        limit: params?.limit || 10,
+        search: params?.search || "",
+      },
+    });
+    return response.data;
+  },
+
   fetchCategories: async () => {
-    const response = await api.get("categories/");
+    const response = await api.get(`categories/`);
+    return response.data;
+  },
+
+  createCategory: async (productData: any) => {
+    const response = await api.post("categories/", productData);
+    return response.data;
+  },
+
+  updateCategory: async (id: string, productData: any) => {
+    const response = await api.put(`categories/${id}`, productData);
+    return response.data;
+  },
+
+  archiveCategories: async (ids: string[]) => {
+    const response = await api.patch("categories/archive", { ids });
+    return response.data;
+  },
+
+  archiveCategory: async (id: string) => {
+    const response = await api.patch(`categories/${id}/archive`);
     return response.data;
   },
 };
 
 export const productService = {
-  fetchProducts: async (params?: {
+  fetchProductsPaginated: async (params?: {
     page?: number;
     limit?: number;
     search?: string;
@@ -109,6 +144,11 @@ export const productService = {
     return response.data;
   },
 
+  fetchProducts: async () => {
+    const response = await api.get(`products/`);
+    return response.data;
+  },
+
   fetchProduct: async (id: string) => {
     const response = await api.get(`products/${id}`);
     return response.data;
@@ -125,7 +165,6 @@ export const productService = {
   },
 
   archiveProducts: async (ids: string[]) => {
-    console.log("Archiving products with IDs:", ids);
     const response = await api.patch("products/archive", { ids });
     return response.data;
   },
@@ -137,6 +176,38 @@ export const productService = {
 
   restoreProduct: async (id: string) => {
     const response = await api.patch(`products/${id}/restore`);
+    return response.data;
+  },
+};
+
+export const userService = {
+  fetchUsers: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => {
+    const response = await api.get("users/", {
+      params: {
+        page: params?.page || 1,
+        limit: params?.limit || 10,
+        search: params?.search || "",
+      },
+    });
+    return response.data;
+  },
+
+  fetchUser: async (id: string) => {
+    const response = await api.get(`users/${id}`);
+    return response.data;
+  },
+
+  updateUser: async (id: string, userData: any) => {
+    const response = await api.put(`user/${id}`, userData);
+    return response.data;
+  },
+
+  archiveUser: async (id: string) => {
+    const response = await api.patch(`users/${id}/archive`);
     return response.data;
   },
 };

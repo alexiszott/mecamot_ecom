@@ -5,7 +5,6 @@ import {
   Search,
   Plus,
   AlertTriangle,
-  Image as ImageIcon,
   DollarSign,
   XCircle,
   Minus,
@@ -15,50 +14,46 @@ import {
   categoriesService,
   productService,
   statsService,
+  userService,
 } from "../../../lib/api";
 import { Product } from "../../../type/product_type";
 import { PaginationData } from "../../../type/pagination_type";
-import AddProductModal from "../../../modal/add_product";
+import AddProductModal from "../../../modal/products/add_product";
 import DataTable from "react-data-table-component";
-import { productsColumns } from "../../../datatable_type/product_data_table";
 import StatsCard from "../../../components/stats_card";
-import { convertFormatPrice } from "../../utils/convert_money";
 import { ToastProvider, useToast } from "../../../components/toast_provider";
 import SidebarLayout from "../../../components/sidebar_layout";
 import DeleteConfirmationModal from "../../../modal/delete_confirmation";
-import EditProductModal from "../../../modal/edit_product";
+import EditProductModal from "../../../modal/products/edit_product";
 import { Category } from "../../../type/category_type";
+import { usersColumns } from "../../../datatable_type/user_data_table";
+import { User } from "../../../type/user_type";
 
-export default function ProductsPage() {
+export default function UsersPage() {
   return (
     <ToastProvider>
       <SidebarLayout>
-        <ProductsPageContent />
+        <UsersPageContent />
       </SidebarLayout>
     </ToastProvider>
   );
 }
 
-function ProductsPageContent() {
+function UsersPageContent() {
   const { showToast } = useToast();
   const { user, loading } = useAuth();
 
   // Data states
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [stockFilter, setStockFilter] = useState("all");
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   // Modal states
-  const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [limit, setLimit] = useState(10);
   const [selectedRows, setSelectedRows] = useState<Product[]>([]);
   const [toggledClearRows, setToggleClearRows] = useState(false);
@@ -95,28 +90,6 @@ function ProductsPageContent() {
   const handleDeleteProducts = async () => {
     try {
       setShowDeleteModal(true);
-      //if (
-      //  window.confirm(
-      //    `Vous êtes sûr de vouloir supprimer : ( ${
-      //      selectedRows.length
-      //    } ) product${selectedRows.length > 1 ? "s" : ""}?`
-      //  )
-      //) {
-      //  const productIds = selectedRows.map((product) => product.id);
-      //  const response = await productService.archiveProducts(productIds);
-      //
-      //  if (response.success) {
-      //    showToast(
-      //      `${selectedRows.length} produit${
-      //        selectedRows.length > 1 ? "s" : ""
-      //      } supprimé${selectedRows.length > 1 ? "s" : ""} avec succès`,
-      //      "success"
-      //    );
-      //    refresh();
-      //  } else {
-      //    showToast("Erreur lors de la suppression des produits", "error");
-      //  }
-      //}
     } catch (error) {
       console.error("Erreur lors de la suppression des produits:", error);
       showToast("Erreur lors de la suppression des produits", "error");
@@ -126,16 +99,6 @@ function ProductsPageContent() {
   const handleDeleteProduct = async (id: string) => {
     try {
       setShowDeleteModal(true);
-      //if (window.confirm(`Vous êtes sûr de vouloir supprimer ce produit ?`)) {
-      //  const response = await productService.archiveProduct(id);
-      //
-      //  if (response.success) {
-      //    showToast("Produit supprimé avec succès", "success");
-      //    refresh();
-      //  } else {
-      //    showToast("Erreur lors de la suppression du produit", "error");
-      //  }
-      //}
     } catch (error) {
       console.error("Erreur lors de la suppression du produit:", error);
       showToast("Erreur lors de la suppression du produit", "error");
@@ -155,41 +118,26 @@ function ProductsPageContent() {
     setSelectedRows(selectedRows);
   };
 
-  const handleProductAdded = async () => {
-    await refresh();
-    showToast("Produit ajouté avec succès", "success");
-  };
-
-  const refresh = async () => {
-    setSelectedRows([]);
-    setToggleClearRows(!toggledClearRows);
-    await fetchProducts();
-    await fetchStats();
-    await fetchCategories();
-  };
-
-  const fetchProducts = async () => {
+  const fetchUsers = async () => {
     try {
-      setLoadingProducts(true);
+      setLoadingUsers(true);
 
       const params = {
         page: pagination.currentPage,
         limit: limit,
         search: debouncedSearchTerm,
-        category: selectedCategory === "all" ? "" : selectedCategory,
-        stockFilter: stockFilter === "all" ? "" : stockFilter,
       };
 
-      const response = await productService.fetchProducts(params);
+      const response = await userService.fetchUsers(params);
 
-      const productsEnrichis = response.data.data.map((product) => ({
-        ...product,
+      const usersEnrichis = response.data.data.map((user) => ({
+        ...user,
         onEdit: handleEdit,
         onDelete: handleDeleteProduct,
       }));
 
       if (response.success) {
-        setProducts(productsEnrichis || []);
+        setUsers(usersEnrichis || []);
         setPagination(response.data.pagination);
       } else {
         showToast("Erreur lors de la récupération des produits", "error");
@@ -198,7 +146,7 @@ function ProductsPageContent() {
       console.error("Erreur lors de la récupération des produits:", error);
       showToast("Erreur lors de la récupération des produits", "error");
     } finally {
-      setLoadingProducts(false);
+      setLoadingUsers(false);
     }
   };
 
@@ -214,47 +162,24 @@ function ProductsPageContent() {
     }
   };
 
-  const fetchCategories = async () => {
-    try {
-      const response = await categoriesService.fetchCategories();
-      if (response.success) {
-        setCategories(response.data);
-      }
-    } catch (error) {
-      console.error("Erreur lors de la récupération des categories:", error);
-      showToast("Erreur lors de la récupération des categories", "error");
-    }
-  };
-
   const clearAllFilters = () => {
     setSearchTerm("");
-    setSelectedCategory("all");
-    setStockFilter("all");
   };
 
-  const hasActiveFilters =
-    searchTerm || selectedCategory !== "all" || stockFilter !== "all";
+  const hasActiveFilters = searchTerm;
 
   useEffect(() => {
     if (pagination.currentPage !== 1) {
       setPagination((prev) => ({ ...prev, currentPage: 1 }));
     }
-  }, [debouncedSearchTerm, selectedCategory, stockFilter]);
+  }, [debouncedSearchTerm]);
 
   useEffect(() => {
     if (user) {
-      fetchProducts();
+      fetchUsers();
       fetchStats();
-      fetchCategories();
     }
-  }, [
-    user,
-    pagination.currentPage,
-    limit,
-    debouncedSearchTerm,
-    selectedCategory,
-    stockFilter,
-  ]);
+  }, [user, pagination.currentPage, limit, debouncedSearchTerm]);
 
   if (!user) {
     return (
@@ -270,28 +195,28 @@ function ProductsPageContent() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard
           title="Total produits"
-          data={stats.totalProducts}
+          data={[]}
           color={"blue"}
           icon={<Package className="w-6 h-6 text-blue-600" />}
         />
 
         <StatsCard
           title="Stock bas"
-          data={stats.lowStockCount}
+          data={[]}
           color={"orange"}
           icon={<AlertTriangle className="w-6 h-6 text-orange-600" />}
         />
 
         <StatsCard
           title="Ruptures"
-          data={stats.outOfStockCount}
+          data={[]}
           color={"red"}
           icon={<XCircle className="w-6 h-6 text-red-600" />}
         />
 
         <StatsCard
           title="Valeur stock"
-          data={convertFormatPrice(stats.totalValue)}
+          data={[]}
           color={"green"}
           icon={<DollarSign className="w-6 h-6 text-green-600" />}
         />
@@ -310,32 +235,6 @@ function ProductsPageContent() {
               className="w-full text-black pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
           </div>
-
-          {/* Filtre par catégorie */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full text-black px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          >
-            <option value="all">📦 Toutes les catégories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.name}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Filtre par stock */}
-          <select
-            value={stockFilter}
-            onChange={(e) => setStockFilter(e.target.value)}
-            className="w-full text-black px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          >
-            <option value="all">📊 Tous les stocks</option>
-            <option value="available">✅ En stock (&gt; 5)</option>
-            <option value="low">⚠️ Stock bas (1-5)</option>
-            <option value="out">❌ Rupture (0)</option>
-          </select>
         </div>
 
         {/* Indicateurs de filtres actifs */}
@@ -351,33 +250,6 @@ function ProductsPageContent() {
               </button>
             </span>
           )}
-          {selectedCategory !== "all" && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              📦 {selectedCategory}
-              <button
-                onClick={() => setSelectedCategory("all")}
-                className="ml-1 text-green-600 hover:text-green-800"
-              >
-                ×
-              </button>
-            </span>
-          )}
-          {stockFilter !== "all" && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-              📊{" "}
-              {stockFilter === "available"
-                ? "En stock"
-                : stockFilter === "low"
-                ? "Stock bas"
-                : "Rupture"}
-              <button
-                onClick={() => setStockFilter("all")}
-                className="ml-1 text-orange-600 hover:text-orange-800"
-              >
-                ×
-              </button>
-            </span>
-          )}
           {hasActiveFilters && (
             <button
               onClick={clearAllFilters}
@@ -388,6 +260,7 @@ function ProductsPageContent() {
           )}
         </div>
       </div>
+
       {/* Products Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
@@ -403,25 +276,6 @@ function ProductsPageContent() {
                   {pagination.totalItems > 1 ? "s" : ""} avec les filtres actifs
                 </p>
               )}
-            </div>
-            <div className="flex space-x-2">
-              {selectedRows.length > 0 && (
-                <button
-                  onClick={handleDeleteProducts}
-                  key="delete"
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
-                >
-                  <Minus className="w-4 h-4 mr-2" />
-                  Supprimer la sélection
-                </button>
-              )}
-              <button
-                onClick={() => setShowModal(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Nouveau produit
-              </button>
             </div>
           </div>
         </div>
@@ -441,9 +295,9 @@ function ProductsPageContent() {
           striped
           highlightOnHover
           persistTableHead
-          progressPending={loadingProducts}
-          columns={productsColumns}
-          data={products}
+          progressPending={loadingUsers}
+          columns={usersColumns}
+          data={users}
           selectableRows
           onSelectedRowsChange={handleChange}
           clearSelectedRows={toggledClearRows}
@@ -466,13 +320,9 @@ function ProductsPageContent() {
                   Effacer les filtres
                 </button>
               ) : (
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="bg-blue-600 text-white px-8 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Ajouter un produit
-                </button>
+                <p className="text-gray-500 text-center mb-4">
+                  Aucun utilisateurs trouvé.
+                </p>
               )}
             </div>
           }
@@ -536,19 +386,6 @@ function ProductsPageContent() {
         } produit${selectedRows.length > 1 ? "s" : ""} ?`}
         itemName={selectedRows.map((p) => p.name).join(", ")}
         onConfirm={handleDeleteProducts}
-      />
-
-      <AddProductModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onProductAdded={handleProductAdded}
-      />
-
-      <EditProductModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onProductUpdated={handleProductAdded}
-        product={selectedProduct}
       />
     </>
   );

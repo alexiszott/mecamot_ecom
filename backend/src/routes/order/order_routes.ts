@@ -1,11 +1,10 @@
 import { Router } from "express";
 import {
-  createProduct,
-  archiveProduct,
-  archiveProducts,
-  fetchProduct,
-  fetchProducts,
-  updateProduct,
+  fetchOrders,
+  fetchOrder,
+  createOrder,
+  updateOrder,
+  archiveOrder,
 } from "./order_controller.js";
 import { requireAdmin } from "../../middleware/admin_middleware.js";
 import { requireAuth } from "../../middleware/auth_middleware.js";

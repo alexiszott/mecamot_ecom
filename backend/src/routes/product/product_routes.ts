@@ -16,7 +16,7 @@ import {
 } from "../../middleware/query_validation.js";
 import {
   productQuerySchema,
-  productParamsSchema,
+  idParamsSchema,
   productBodySchema,
 } from "../../utils/validate_schema.js";
 
@@ -40,7 +40,7 @@ router.put(
   "/:id",
   requireAuth,
   requireAdmin,
-  validateParams(productParamsSchema),
+  validateParams(idParamsSchema),
   validateBody(productBodySchema),
   updateProduct
 );
@@ -49,7 +49,7 @@ router.patch(
   "/:id/archive",
   requireAuth,
   requireAdmin,
-  validateParams(productParamsSchema),
+  validateParams(idParamsSchema),
   archiveProduct
 );
 

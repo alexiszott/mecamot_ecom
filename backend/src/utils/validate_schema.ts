@@ -64,14 +64,6 @@ export const loginSchema = z.object({
   rememberMe: z.boolean().optional().default(false),
 });
 
-export const idSchema = z.object({
-  id: z
-    .string()
-    .min(1, "ID requis")
-    .max(50, "ID trop long")
-    .cuid("ID utilisateur invalide"),
-});
-
 export const paginationSchema = z.object({
   page: z
     .string()
@@ -260,8 +252,12 @@ export const productQuerySchema = paginationSchema
     }
   );
 
-export const productParamsSchema = z.object({
-  id: z.string().min(1, "ID requis").max(100, "ID trop long"),
+export const idParamsSchema = z.object({
+  id: z
+    .string()
+    .min(1, "ID requis")
+    .max(100, "ID trop long")
+    .cuid("ID invalide"),
 });
 
 export const productBodyArchiveSchema = z.object({

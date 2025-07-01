@@ -1,8 +1,8 @@
 "use client";
 import React, { useState } from "react";
 import { Plus, X, Upload, Save } from "lucide-react";
-import { productService } from "../lib/api";
-import ModalBase from "./shared/modal_base";
+import { productService } from "../../lib/api";
+import ModalBase from "../shared/modal_base";
 
 interface ProductFormData {
   name: string;
@@ -18,13 +18,13 @@ interface ProductFormData {
 interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onProductAdded: () => void;
+  onAdded: () => void;
 }
 
 export default function AddProductModal({
   isOpen,
   onClose,
-  onProductAdded,
+  onAdded,
 }: AddProductModalProps) {
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
@@ -123,7 +123,7 @@ export default function AddProductModal({
       if (response.success) {
         resetForm();
         onClose();
-        onProductAdded();
+        onAdded();
       }
     } catch (error: any) {
       console.error("Erreur lors de la création:", error);

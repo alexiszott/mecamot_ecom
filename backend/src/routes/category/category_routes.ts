@@ -3,6 +3,7 @@ import {
   archiveCategory,
   createCategory,
   fetchCategories,
+  fetchCategoriesPaginated,
   fetchCategory,
   updateCategory,
 } from "./category_controller.js";
@@ -15,7 +16,7 @@ import {
 } from "../../middleware/query_validation.js";
 import {
   productQuerySchema,
-  productParamsSchema,
+  idParamsSchema,
   productBodySchema,
 } from "../../utils/validate_schema.js";
 
@@ -24,6 +25,7 @@ const router = Router();
 // Public routes
 
 router.get("/", fetchCategories);
+router.get("/paginated", fetchCategoriesPaginated);
 router.get("/:id", validateQuery(productQuerySchema), fetchCategory);
 
 // Protected routes
@@ -40,7 +42,7 @@ router.put(
   "/:id",
   requireAuth,
   requireAdmin,
-  validateParams(productParamsSchema),
+  validateParams(idParamsSchema),
   validateBody(productBodySchema),
   updateCategory
 );
@@ -49,7 +51,7 @@ router.delete(
   "/:id",
   requireAuth,
   requireAdmin,
-  validateParams(productParamsSchema),
+  validateParams(idParamsSchema),
   archiveCategory
 );
 

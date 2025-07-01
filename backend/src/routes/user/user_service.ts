@@ -6,12 +6,30 @@ import {
   prismaPaginate,
 } from "../../utils/pagination";
 import { prisma } from "../../prismaClient.js";
+import { log } from "../../utils/logger";
 
 export const fetchUsersService = async (query: any) => {
+  query = {
+    ...query,
+    role: "USER",
+  };
+
+  log.info("Fetching users with query", {
+    query,
+  });
+
   const paginationOptions = extractPaginationParams(query);
 
-  const searchFields = ["firstname", "lastname", "email", "phone"];
+  log.info("Pagination options", {
+    paginationOptions,
+  });
+
+  const searchFields = ["lastname", "firstname", "email", "phone"];
   const where = buildSearchFilter(query, searchFields);
+
+  log.info("Search filters", {
+    where,
+  });
 
   let orderBy: any = { createdAt: "desc" };
 
@@ -21,10 +39,29 @@ export const fetchUsersService = async (query: any) => {
     orderBy = { [sortField]: sortOrder };
   }
 
+  log.info("Order by options", {
+    orderBy,
+  });
+
   return await paginate(prismaPaginate.user, {
     ...paginationOptions,
     where,
     orderBy,
+    include: {
+      accounts: true,
+      orders: true,
+    },
+    select: {
+      id: true,
+      firstname: true,
+      lastname: true,
+      email: true,
+      phone: true,
+      isEmailVerified: true,
+      emailVerifiedDate: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 };
 

@@ -18,7 +18,7 @@ import {
 } from "../../../lib/api";
 import { Product } from "../../../type/product_type";
 import { PaginationData } from "../../../type/pagination_type";
-import AddProductModal from "../../../modal/add_product";
+import AddProductModal from "../../../modal/products/add_product";
 import DataTable from "react-data-table-component";
 import { productsColumns } from "../../../datatable_type/product_data_table";
 import StatsCard from "../../../components/stats_card";
@@ -26,7 +26,7 @@ import { convertFormatPrice } from "../../utils/convert_money";
 import { ToastProvider, useToast } from "../../../components/toast_provider";
 import SidebarLayout from "../../../components/sidebar_layout";
 import DeleteConfirmationModal from "../../../modal/delete_confirmation";
-import EditProductModal from "../../../modal/edit_product";
+import EditProductModal from "../../../modal/products/edit_product";
 import { Category } from "../../../type/category_type";
 
 export default function ProductsPage() {
@@ -217,8 +217,11 @@ function ProductsPageContent() {
   const fetchCategories = async () => {
     try {
       const response = await categoriesService.fetchCategories();
-      if (response.success) {
-        setCategories(response.data);
+      if (response.success && Array.isArray(response.data.data)) {
+        setCategories(response.data.data);
+      } else {
+        console.error("Categories mal formatées :", response.data);
+        setCategories([]);
       }
     } catch (error) {
       console.error("Erreur lors de la récupération des categories:", error);
@@ -541,13 +544,13 @@ function ProductsPageContent() {
       <AddProductModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        onProductAdded={handleProductAdded}
+        onAdded={handleProductAdded}
       />
 
       <EditProductModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
-        onProductUpdated={handleProductAdded}
+        onUpdated={handleProductAdded}
         product={selectedProduct}
       />
     </>

@@ -1,14 +1,14 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Save, Upload } from "lucide-react";
-import ModalBase from "./shared/modal_base";
-import { Product } from "../type/product_type";
-import { productService } from "../lib/api";
+import ModalBase from "../shared/modal_base";
+import { Product } from "../../type/product_type";
+import { productService } from "../../lib/api";
 
 interface EditProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onProductUpdated: () => void;
+  onUpdated: () => void;
   product: Product | null;
 }
 
@@ -26,7 +26,7 @@ interface ProductFormData {
 export default function EditProductModal({
   isOpen,
   onClose,
-  onProductUpdated,
+  onUpdated,
   product,
 }: EditProductModalProps) {
   const [loadingSubmit, setLoadingSubmit] = useState(false);
@@ -148,7 +148,7 @@ export default function EditProductModal({
       );
 
       if (response.success) {
-        onProductUpdated();
+        onUpdated();
         closeModal();
       } else {
         setFormErrors({

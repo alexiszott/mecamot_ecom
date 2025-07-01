@@ -45,7 +45,7 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
       id: "products",
       label: "Produits",
       icon: Package,
-      url: "/backoffice/product",
+      url: "/backoffice/products",
     },
     {
       id: "clients",
@@ -57,7 +57,7 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
       id: "category",
       label: "Catégories",
       icon: FolderOpen,
-      url: "/backoffice/category",
+      url: "/backoffice/categories",
     },
     {
       id: "stats",
@@ -181,7 +181,7 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
         >
           {/* Overlay */}
           <div
-            className="fixed inset-0 bg-black bg-opacity-50"
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setIsMobileOpen(false)}
           />
 

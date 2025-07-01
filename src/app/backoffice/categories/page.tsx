@@ -1,74 +1,51 @@
 "use client";
 import { useState, useEffect } from "react";
-import {
-  Package,
-  Search,
-  Plus,
-  AlertTriangle,
-  Image as ImageIcon,
-  DollarSign,
-  XCircle,
-  Minus,
-} from "lucide-react";
+import { Package, Search, Plus, Minus } from "lucide-react";
 import { useAuth } from "../../context/auth_context";
-import {
-  categoriesService,
-  productService,
-  statsService,
-} from "../../../lib/api";
-import { Product } from "../../../type/product_type";
+import { categoriesService } from "../../../lib/api";
 import { PaginationData } from "../../../type/pagination_type";
-import AddProductModal from "../../../modal/add_product";
 import DataTable from "react-data-table-component";
-import { productsColumns } from "../../../datatable_type/product_data_table";
-import StatsCard from "../../../components/stats_card";
-import { convertFormatPrice } from "../../utils/convert_money";
 import { ToastProvider, useToast } from "../../../components/toast_provider";
 import SidebarLayout from "../../../components/sidebar_layout";
 import DeleteConfirmationModal from "../../../modal/delete_confirmation";
-import EditProductModal from "../../../modal/edit_product";
 import { Category } from "../../../type/category_type";
+import { categoriesColumns } from "../../../datatable_type/category_data_table";
+import EditCategoryModal from "../../../modal/categories/edit_category";
+import AddCategoryModal from "../../../modal/categories/add_category";
 
-export default function ProductsPage() {
+export default function CategoriesPage() {
   return (
     <ToastProvider>
       <SidebarLayout>
-        <ProductsPageContent />
+        <CategoriesPageContent />
       </SidebarLayout>
     </ToastProvider>
   );
 }
 
-function ProductsPageContent() {
+function CategoriesPageContent() {
   const { showToast } = useToast();
   const { user, loading } = useAuth();
 
   // Data states
-  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [stockFilter, setStockFilter] = useState("all");
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
+
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [limit, setLimit] = useState(10);
-  const [selectedRows, setSelectedRows] = useState<Product[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Category[]>([]);
   const [toggledClearRows, setToggleClearRows] = useState(false);
-
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    lowStockCount: 0,
-    outOfStockCount: 0,
-    totalValue: 0,
-  });
 
   const [pagination, setPagination] = useState<PaginationData>({
     currentPage: 1,
@@ -85,6 +62,10 @@ function ProductsPageContent() {
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  const clearAllFilters = () => {
+    setSearchTerm("");
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -142,12 +123,12 @@ function ProductsPageContent() {
     }
   };
 
-  const handleEdit = async (product) => {
+  const handleEdit = async (category) => {
     try {
-      setSelectedProduct(product);
+      setSelectedCategory(category);
       setShowEditModal(true);
     } catch (error) {
-      console.error("Erreur lors de la suppression des produits:", error);
+      console.error("Erreur lors de la suppression des categories:", error);
     }
   };
 
@@ -157,104 +138,64 @@ function ProductsPageContent() {
 
   const handleProductAdded = async () => {
     await refresh();
-    showToast("Produit ajouté avec succès", "success");
+    showToast("Categories ajouté avec succès", "success");
   };
 
   const refresh = async () => {
     setSelectedRows([]);
     setToggleClearRows(!toggledClearRows);
-    await fetchProducts();
-    await fetchStats();
     await fetchCategories();
   };
 
-  const fetchProducts = async () => {
+  const fetchCategories = async () => {
     try {
-      setLoadingProducts(true);
+      setLoadingCategories(true);
 
       const params = {
         page: pagination.currentPage,
         limit: limit,
         search: debouncedSearchTerm,
-        category: selectedCategory === "all" ? "" : selectedCategory,
-        stockFilter: stockFilter === "all" ? "" : stockFilter,
       };
 
-      const response = await productService.fetchProducts(params);
+      const response = await categoriesService.fetchPaginatedCategories(params);
 
-      const productsEnrichis = response.data.data.map((product) => ({
-        ...product,
+      console.log("Response from fetchPaginatedCategories:", response);
+
+      const categoriesEnrichis = response.data.data.map((category) => ({
+        ...category,
         onEdit: handleEdit,
         onDelete: handleDeleteProduct,
       }));
 
+      console.log("Categories fetched:", response);
+
       if (response.success) {
-        setProducts(productsEnrichis || []);
+        setCategories(categoriesEnrichis || []);
         setPagination(response.data.pagination);
       } else {
-        showToast("Erreur lors de la récupération des produits", "error");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la récupération des produits:", error);
-      showToast("Erreur lors de la récupération des produits", "error");
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const response = await statsService.productsStats();
-      if (response.success) {
-        setStats(response.data);
-      }
-    } catch (error) {
-      console.error("Erreur lors de la récupération des statistiques:", error);
-      showToast("Erreur lors de la récupération des statistiques", "error");
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await categoriesService.fetchCategories();
-      if (response.success) {
-        setCategories(response.data);
+        showToast("Erreur lors de la récupération des categories", "error");
       }
     } catch (error) {
       console.error("Erreur lors de la récupération des categories:", error);
       showToast("Erreur lors de la récupération des categories", "error");
+    } finally {
+      setLoadingCategories(false);
     }
   };
 
-  const clearAllFilters = () => {
-    setSearchTerm("");
-    setSelectedCategory("all");
-    setStockFilter("all");
-  };
-
-  const hasActiveFilters =
-    searchTerm || selectedCategory !== "all" || stockFilter !== "all";
+  const hasActiveFilters = searchTerm;
 
   useEffect(() => {
     if (pagination.currentPage !== 1) {
       setPagination((prev) => ({ ...prev, currentPage: 1 }));
     }
-  }, [debouncedSearchTerm, selectedCategory, stockFilter]);
+  }, [debouncedSearchTerm]);
 
   useEffect(() => {
     if (user) {
-      fetchProducts();
-      fetchStats();
       fetchCategories();
     }
-  }, [
-    user,
-    pagination.currentPage,
-    limit,
-    debouncedSearchTerm,
-    selectedCategory,
-    stockFilter,
-  ]);
+  }, [user, pagination.currentPage, limit, debouncedSearchTerm]);
 
   if (!user) {
     return (
@@ -266,76 +207,19 @@ function ProductsPageContent() {
 
   return (
     <>
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatsCard
-          title="Total produits"
-          data={stats.totalProducts}
-          color={"blue"}
-          icon={<Package className="w-6 h-6 text-blue-600" />}
-        />
-
-        <StatsCard
-          title="Stock bas"
-          data={stats.lowStockCount}
-          color={"orange"}
-          icon={<AlertTriangle className="w-6 h-6 text-orange-600" />}
-        />
-
-        <StatsCard
-          title="Ruptures"
-          data={stats.outOfStockCount}
-          color={"red"}
-          icon={<XCircle className="w-6 h-6 text-red-600" />}
-        />
-
-        <StatsCard
-          title="Valeur stock"
-          data={convertFormatPrice(stats.totalValue)}
-          color={"green"}
-          icon={<DollarSign className="w-6 h-6 text-green-600" />}
-        />
-      </div>
       {/* Filtres */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Recherche par nom/marque/description */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Rechercher (nom, marque, description)..."
+              placeholder="Rechercher (nom, description)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full text-black pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
           </div>
-
-          {/* Filtre par catégorie */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full text-black px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          >
-            <option value="all">📦 Toutes les catégories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.name}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Filtre par stock */}
-          <select
-            value={stockFilter}
-            onChange={(e) => setStockFilter(e.target.value)}
-            className="w-full text-black px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          >
-            <option value="all">📊 Tous les stocks</option>
-            <option value="available">✅ En stock (&gt; 5)</option>
-            <option value="low">⚠️ Stock bas (1-5)</option>
-            <option value="out">❌ Rupture (0)</option>
-          </select>
         </div>
 
         {/* Indicateurs de filtres actifs */}
@@ -346,33 +230,6 @@ function ProductsPageContent() {
               <button
                 onClick={() => setSearchTerm("")}
                 className="ml-1 text-blue-600 hover:text-blue-800"
-              >
-                ×
-              </button>
-            </span>
-          )}
-          {selectedCategory !== "all" && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              📦 {selectedCategory}
-              <button
-                onClick={() => setSelectedCategory("all")}
-                className="ml-1 text-green-600 hover:text-green-800"
-              >
-                ×
-              </button>
-            </span>
-          )}
-          {stockFilter !== "all" && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-              📊{" "}
-              {stockFilter === "available"
-                ? "En stock"
-                : stockFilter === "low"
-                ? "Stock bas"
-                : "Rupture"}
-              <button
-                onClick={() => setStockFilter("all")}
-                className="ml-1 text-orange-600 hover:text-orange-800"
               >
                 ×
               </button>
@@ -394,7 +251,7 @@ function ProductsPageContent() {
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
-                Produits ({pagination.totalItems})
+                Categories ({pagination.totalItems})
               </h3>
               {hasActiveFilters && (
                 <p className="text-sm text-gray-600 mt-1">
@@ -420,7 +277,7 @@ function ProductsPageContent() {
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Nouveau produit
+                Nouvelle catégorie
               </button>
             </div>
           </div>
@@ -441,9 +298,9 @@ function ProductsPageContent() {
           striped
           highlightOnHover
           persistTableHead
-          progressPending={loadingProducts}
-          columns={productsColumns}
-          data={products}
+          progressPending={loadingCategories}
+          columns={categoriesColumns}
+          data={categories}
           selectableRows
           onSelectedRowsChange={handleChange}
           clearSelectedRows={toggledClearRows}
@@ -451,12 +308,14 @@ function ProductsPageContent() {
             <div className="flex flex-col items-center justify-center py-12">
               <Package className="w-16 h-16 text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {hasActiveFilters ? "Aucun produit trouvé" : "Aucun produit"}
+                {hasActiveFilters
+                  ? "Aucune catégorie trouvé"
+                  : "Aucune catégorie"}
               </h3>
               <p className="text-gray-500 text-center mb-4">
                 {hasActiveFilters
                   ? "Essayez de modifier vos critères de recherche ou d'effacer les filtres."
-                  : "Commencez par ajouter vos premiers produits."}
+                  : "Commencez par ajouter vos première catégories."}
               </p>
               {hasActiveFilters ? (
                 <button
@@ -471,7 +330,7 @@ function ProductsPageContent() {
                   className="bg-blue-600 text-white px-8 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Ajouter un produit
+                  Ajouter une catégorie
                 </button>
               )}
             </div>
@@ -528,7 +387,7 @@ function ProductsPageContent() {
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => setSelectedRows([])}
-        title={`Supprimer ${selectedRows.length} produit${
+        title={`Supprimer ${selectedRows.length} catégorie${
           selectedRows.length > 1 ? "s" : ""
         }`}
         message={`Vous êtes sûr de vouloir supprimer ${
@@ -538,17 +397,17 @@ function ProductsPageContent() {
         onConfirm={handleDeleteProducts}
       />
 
-      <AddProductModal
+      <AddCategoryModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        onProductAdded={handleProductAdded}
+        onAdded={handleProductAdded}
       />
 
-      <EditProductModal
+      <EditCategoryModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
-        onProductUpdated={handleProductAdded}
-        product={selectedProduct}
+        onUpdated={handleProductAdded}
+        category={selectedCategory}
       />
     </>
   );

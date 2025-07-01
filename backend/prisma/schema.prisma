@@ -27,6 +27,7 @@ model User {
   updatedAt         DateTime  @updatedAt
   accounts          Account[]
   orders            Order[]
+  stockReservations StockReservation[]
   EmailVerificationToken EmailVerificationToken[]
 }
 
@@ -66,29 +67,68 @@ model Session {
   @@map("user_sessions")
 }
 
+
 // ORDER MANAGEMENT
+
+enum ReservationStatus {
+  ACTIVE
+  CONFIRMED
+  EXPIRED
+  CANCELLED
+}
+
+model StockReservation {
+  id        String            @id @default(cuid())
+  userId    String
+  productId String
+  orderId   String?
+  quantity  Int
+  status    ReservationStatus @default(ACTIVE)
+  expiresAt DateTime
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  user      User              @relation(fields: [userId], references: [id])
+  product   Product           @relation(fields: [productId], references: [id])
+  order     Order?            @relation(fields: [orderId], references: [id])
+
+  @@index([productId, status, expiresAt])
+  @@index([userId])
+}
 
 enum Status {
   PENDING
-  PAID
+  PROCESSING
   PREPARING
-  READY
+  SHIPPED
   DELIVERED
   CANCELLED
+  FAILED
+  COMPLETED
+}
+
+enum PaymentStatus  {
+  PENDING
+  COMPLETED
+  FAILED
 }
 
 model Order {
   id                    String        @id @default(cuid())
   userId                String    
-  quantity              Int   
-  status                Status        @default(PREPARING)
+  status                Status        @default(PENDING)
   totalPrice            Decimal       @db.Decimal(10, 2)
-  stripePaymentIntentId String?   
-  isPaid                Boolean       @default(false)
+  shippingPrice         Decimal       @db.Decimal(10, 2) @default(0.00)
+  paymentMethod         String?       
+  paymentStatus         PaymentStatus  @default(PENDING)
+  paymentIntentId       String?
+  paymentMethodId       String?
   paidAt                DateTime?
   shippingAddress       String?
   notes                 String?
+  isDeleted             Boolean       @default(false)
   orderItems            OrderItem[]
+  stockReservations     StockReservation[]
   user                  User          @relation(fields: [userId], references: [id])
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -123,6 +163,7 @@ model Product {
   updatedAt   DateTime    @updatedAt
   category    Category?   @relation(fields: [categoryid], references: [id])
   orderItems  OrderItem[]
+  stockReservations StockReservation[]
 }
 
 model Category {

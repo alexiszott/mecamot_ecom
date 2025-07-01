@@ -1,11 +1,10 @@
 // ✅ backend/src/routes/product/product_controller.ts
 import {
-  fetchProductsService,
-  fetchProductService,
-  createProductService,
-  updateProductService,
-  archiveProductsService,
-  archiveProductService,
+  fetchOrdersService,
+  fetchOrderService,
+  createOrderService,
+  updateOrderService,
+  archiveOrderService,
 } from "./order_service.js";
 import { success, error } from "../../utils/apiReponse.js";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
@@ -44,30 +43,30 @@ export const fetchOrders = async (req, res, next) => {
   }
 };
 
-export const fetchProduct = async (req, res, next) => {
+export const fetchOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    log.info("Récupération d'un produit", {
-      productId: id,
+    log.info("Récupération d'une commande", {
+      orderId: id,
       userId: req.session?.userId,
       ip: req.ip,
     });
 
-    const product = await fetchProductService(id);
+    const order = await fetchOrderService(id);
 
-    if (!product) {
+    if (!order) {
       return error(res, {
         status: HTTP_STATUS_CODES.NotFound,
-        message: "Produit non trouvé",
+        message: "Commande non trouvé",
         code: HTTP_STATUS_CODES.NotFound,
-        errors: { general: ["Le produit demandé n'existe pas"] },
+        errors: { general: ["La commande demandé n'existe pas"] },
       });
     }
 
-    return success(res, { product }, "Produit récupéré avec succès");
+    return success(res, { order }, "Commande récupéré avec succès");
   } catch (err: any) {
-    log.error("Erreur lors de la récupération du produit", {
+    log.error("Erreur lors de la récupération de la commande", {
       error: err.message,
       productId: req.params.id,
       userId: req.session?.userId,
@@ -75,57 +74,61 @@ export const fetchProduct = async (req, res, next) => {
 
     return error(res, {
       status: HTTP_STATUS_CODES.InternalServerError,
-      message: "Erreur lors de la récupération du produit",
+      message: "Erreur lors de la récupération de la commande",
       code: HTTP_STATUS_CODES.InternalServerError,
       errors: { general: ["Erreur interne du serveur"] },
     });
   }
 };
 
-export const createProduct = async (req, res, next) => {
+export const createOrder = async (req, res, next) => {
   try {
-    log.userAction("create_product", req.user?.id, {
-      productData: req.body,
+    log.userAction("create_an_order", req.user?.id, {
+      orderData: req.body,
       ip: req.ip,
     });
 
-    const slug = req.body.name
-      .toLowerCase()
-      .normalize("NFD") // enlève les accents (é → e)
-      .replace(/[\u0300-\u036f]/g, "") // supprime les diacritiques
-      .replace(/[^a-z0-9\s-]/g, "") // enlève les caractères spéciaux sauf tirets/espaces
-      .trim()
-      .replace(/\s+/g, "-") // remplace les espaces par des tirets
-      .replace(/-+/g, "-") // supprime les tirets multiples
-      .slice(0, 100);
+    /* 
+    // 1. Vérifier le stock disponible (stock - réservations actives)
+    const availableStock = await getAvailableStock(productId);
+    if (availableStock < quantity) {
+      throw new Error(`Stock insuffisant pour ${productName}`);
+    }
 
-    console.log("Slug généré :", slug);
-
-    req.body.slug = slug;
-
-    const prefix = req.body.name
-      .toUpperCase()
-      .normalize("NFD") // supprime accents
-      .replace(/[\u0300-\u036f]/g, "") // ex: É → E
-      .replace(/[^A-Z0-9]/g, "") // enlève tout sauf lettres/chiffres
-      .slice(0, 5); // on prend les 5 premiers caractères
-
-    const random = Math.floor(1000 + Math.random() * 9000);
-
-    const sku = `${prefix}-${random}`;
-
-    req.body.sku = sku;
-
-    const product = await createProductService(req.body);
-
-    log.info("Produit créé avec succès", {
-      productId: product.id,
-      adminId: req.user?.id,
+    // 2. Créer la réservation (statut ACTIVE)
+    const reservation = await createReservation({
+      userId, productId, quantity,
+      status: 'ACTIVE',
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
     });
 
-    return success(res, { product }, "Produit créé avec succès");
+    // 3. Créer la commande (statut PROCESSING)
+    const order = await createOrder({
+      status: 'PROCESSING',
+      paymentStatus: 'PENDING'
+    });
+
+    // 4. Lier réservation à commande
+    await linkReservationToOrder(reservation.id, order.id);
+
+    // 5. Si paiement réussi :
+    await updateOrder(order.id, { 
+      status: 'CONFIRMED', 
+      paymentStatus: 'COMPLETED' 
+    });
+    await updateReservation(reservation.id, { status: 'CONFIRMED' });
+    await decreaseStock(productId, quantity);
+
+    // 6. Si paiement échoue :
+    await updateOrder(order.id, { 
+      status: 'FAILED', 
+      paymentStatus: 'FAILED' 
+    });
+    await updateReservation(reservation.id, { status: 'EXPIRED' });
+    */
+    
   } catch (err: any) {
-    log.error("Erreur lors de la création du produit", {
+    log.error("Erreur lors de la création de la commande", {
       error: err.message,
       productData: req.body,
       adminId: req.user?.id,
@@ -133,28 +136,28 @@ export const createProduct = async (req, res, next) => {
 
     return error(res, {
       status: HTTP_STATUS_CODES.InternalServerError,
-      message: "Erreur lors de la création du produit",
+      message: "Erreur lors de la création de la commande",
       code: HTTP_STATUS_CODES.InternalServerError,
       errors: { general: ["Erreur interne du serveur"] },
     });
   }
 };
 
-export const updateProduct = async (req, res, next) => {
+export const updateOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    log.userAction("update_product", req.user?.id, {
+    log.userAction("update_order", req.user?.id, {
       productId: id,
       updateData: req.body,
       ip: req.ip,
     });
 
-    const product = await updateProductService(id, req.body);
+    const order = await updateOrderService(id, req.body);
 
-    return success(res, { product }, "Produit mis à jour avec succès");
+    return success(res, { order }, "Commande mise à jour avec succès");
   } catch (err: any) {
-    log.error("Erreur lors de la mise à jour du produit", {
+    log.error("Erreur lors de la mise à jour de la commande", {
       error: err.message,
       productId: req.params.id,
       adminId: req.user?.id,
@@ -162,42 +165,7 @@ export const updateProduct = async (req, res, next) => {
 
     return error(res, {
       status: HTTP_STATUS_CODES.InternalServerError,
-      message: "Erreur lors de la mise à jour du produit",
-      code: HTTP_STATUS_CODES.InternalServerError,
-      errors: { general: ["Erreur interne du serveur"] },
-    });
-  }
-};
-
-// Function to archive X products
-
-export const archiveProducts = async (req, res, next) => {
-  try {
-    const { ids } = req.body;
-
-    log.userAction("delete bulk products", req.user?.id, {
-      productId: ids,
-      ip: req.ip,
-    });
-
-    await archiveProductsService(ids);
-
-    log.info("Produits supprimés avec succès", {
-      productId: ids,
-      adminId: req.user?.id,
-    });
-
-    return success(res, null, "Produits supprimés avec succès");
-  } catch (err: any) {
-    log.error("Erreur lors de la suppression des produits", {
-      error: err.message,
-      productId: req.params.id,
-      adminId: req.user?.id,
-    });
-
-    return error(res, {
-      status: HTTP_STATUS_CODES.InternalServerError,
-      message: "Erreur lors de la suppression des produits",
+      message: "Erreur lors de la mise à jour de la commande",
       code: HTTP_STATUS_CODES.InternalServerError,
       errors: { general: ["Erreur interne du serveur"] },
     });
@@ -206,25 +174,25 @@ export const archiveProducts = async (req, res, next) => {
 
 // Function to archive 1 product
 
-export const archiveProduct = async (req, res, next) => {
+export const archiveOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    log.userAction("delete_product", req.user?.id, {
-      productId: id,
+    log.userAction("delete_order", req.user?.id, {
+      orderId: id,
       ip: req.ip,
     });
 
-    await archiveProductService(id);
+    await archiveOrderService(id);
 
-    log.info("Produit supprimé avec succès", {
+    log.info("Commande supprimé avec succès", {
       productId: id,
       adminId: req.user?.id,
     });
 
-    return success(res, null, "Produit supprimé avec succès");
+    return success(res, null, "Commande supprimé avec succès");
   } catch (err: any) {
-    log.error("Erreur lors de la suppression du produit", {
+    log.error("Erreur lors de la suppression de la commande", {
       error: err.message,
       productId: req.params.id,
       adminId: req.user?.id,
@@ -232,7 +200,7 @@ export const archiveProduct = async (req, res, next) => {
 
     return error(res, {
       status: HTTP_STATUS_CODES.InternalServerError,
-      message: "Erreur lors de la suppression du produit",
+      message: "Erreur lors de la suppression de la commande",
       code: HTTP_STATUS_CODES.InternalServerError,
       errors: { general: ["Erreur interne du serveur"] },
     });

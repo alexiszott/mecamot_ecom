@@ -1,11 +1,12 @@
 // ✅ backend/src/routes/product/product_controller.ts
 import {
-  fetchCategoriesService,
   fetchCategoryService,
   createCategoryService,
   updateCategoryService,
   archiveCategoriesService,
   archiveCategoryService,
+  fetchCategoriesService,
+  fetchCategoriesPaginatedService,
 } from "./category_service.js";
 import { success, error } from "../../utils/apiReponse.js";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
@@ -18,6 +19,39 @@ import { log } from "../../utils/logger.js";
 
 // Récupération de toutes les catégories
 
+export const fetchCategoriesPaginated = async (req, res, next) => {
+  try {
+    log.info("Récupération des categories", {
+      query: req.query,
+      userId: req.session?.userId,
+      ip: req.ip,
+    });
+
+    const result = await fetchCategoriesPaginatedService(req.query);
+
+    log.info("Catégories récupérés avec succès", {
+      totalItems: result.pagination.totalItems,
+      currentPage: result.pagination.currentPage,
+      userId: req.session?.userId,
+    });
+
+    return success(res, result, "Categories récupérés avec succès");
+  } catch (err: any) {
+    log.error("Erreur lors de la récupération des Categories", {
+      error: err.message,
+      query: req.query,
+      userId: req.session?.userId,
+    });
+
+    return error(res, {
+      status: HTTP_STATUS_CODES.InternalServerError,
+      message: "Erreur lors de la récupération des produits",
+      code: HTTP_STATUS_CODES.InternalServerError,
+      errors: { general: ["Erreur interne du serveur"] },
+    });
+  }
+};
+
 export const fetchCategories = async (req, res, next) => {
   try {
     log.info("Récupération des categories", {
@@ -28,8 +62,7 @@ export const fetchCategories = async (req, res, next) => {
 
     const result = await fetchCategoriesService();
 
-    log.info("Categories récupérés avec succès", {
-      resultCount: result.length,
+    log.info("Catégories récupérés avec succès", {
       userId: req.session?.userId,
     });
 
@@ -62,9 +95,9 @@ export const fetchCategory = async (req, res, next) => {
       ip: req.ip,
     });
 
-    const product = await fetchCategoryService(id);
+    const category = await fetchCategoryService(id);
 
-    if (!product) {
+    if (!category) {
       return error(res, {
         status: HTTP_STATUS_CODES.NotFound,
         message: "Categorie non trouvé",
@@ -73,7 +106,7 @@ export const fetchCategory = async (req, res, next) => {
       });
     }
 
-    return success(res, { product }, "Categorie récupéré avec succès");
+    return success(res, { category }, "Categorie récupéré avec succès");
   } catch (err: any) {
     log.error("Erreur lors de la récupération de la categorie", {
       error: err.message,

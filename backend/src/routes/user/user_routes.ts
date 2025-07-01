@@ -13,7 +13,7 @@ import {
   validateQuery,
 } from "../../middleware/query_validation.js";
 import {
-  idSchema,
+  idParamsSchema,
   paginationSchema,
   updateUserSchema,
 } from "../../utils/validate_schema.js";
@@ -31,22 +31,24 @@ router.get(
   "/:userId",
   requireAuth,
   requireAdmin,
-  validateParams(idSchema),
+  validateParams(idParamsSchema),
   fetchUser
 );
+
 router.put(
   "/:userId",
   requireAuth,
   requireAdmin,
-  validateParams(idSchema),
+  validateParams(idParamsSchema),
   validateBody(updateUserSchema),
   updateUser
 );
-router.delete(
+
+router.patch(
   "/:userId",
   requireAuth,
   requireAdmin,
-  validateParams(idSchema),
+  validateParams(idParamsSchema),
   deleteUser
 );
 
