@@ -53,21 +53,6 @@ export const fetchProductsService = async (query: any) => {
     include: {
       category: true,
     },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      price: true,
-      stock: true,
-      imageUrl: true,
-      slug: true,
-      isPublished: true,
-      sku: true,
-      brand: true,
-      categoryid: true,
-      createdAt: true,
-      updatedAt: true,
-    },
   });
 };
 

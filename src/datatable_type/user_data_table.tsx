@@ -1,7 +1,16 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, CircleUserRound, Eye } from "lucide-react";
 
 export const usersColumns = [
-  {},
+  {
+    cell: () => (
+      <div className="flex items-center justify-center">
+        <CircleUserRound
+          className="w-10 h-10 rounded-full"
+          strokeWidth={"1px"}
+        />
+      </div>
+    ),
+  },
   {
     name: "Nom",
     selector: (row) => row.firstname,
@@ -22,44 +31,6 @@ export const usersColumns = [
     sortable: true,
   },
   {
-    name: "Email vérifié",
-    selector: (row) => row.isEmailVerified,
-    sortable: true,
-    cell: (row) => (
-      <span className="font-medium text-gray-900">
-        {row.isEmailVerified ? "Oui" : "Non"}
-      </span>
-    ),
-  },
-  {
-    name: "Date de vérification",
-    selector: (row) => row.emailVerifiedDate,
-    sortable: true,
-    cell: (row) => (
-      <span className="font-medium text-gray-900">
-        {new Date(row.emailVerifiedDate).toLocaleDateString("fr-FR", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        })}
-      </span>
-    ),
-  },
-  {
-    name: "Date de création",
-    selector: (row) => row.createdAt,
-    sortable: true,
-    cell: (row) => (
-      <span className="font-medium text-gray-900">
-        {new Date(row.createdAt).toLocaleDateString("fr-FR", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        })}
-      </span>
-    ),
-  },
-  {
     name: "Actions",
     cell: (row) => (
       <div className="flex items-center gap-5">
@@ -70,10 +41,10 @@ export const usersColumns = [
           <Pencil />
         </button>
         <button
-          className="text-red-500 hover:text-red-700"
-          onClick={() => row.onDelete(row.id)}
+          className="text-blue-500 hover:text-blue-700"
+          onClick={() => row.onDetails(row)}
         >
-          <Trash2 />
+          <Eye />
         </button>
       </div>
     ),

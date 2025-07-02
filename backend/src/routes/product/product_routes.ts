@@ -45,7 +45,7 @@ router.put(
   updateProduct
 );
 
-router.patch(
+router.put(
   "/:id/archive",
   requireAuth,
   requireAdmin,
@@ -53,7 +53,7 @@ router.patch(
   archiveProduct
 );
 
-router.patch(
+router.put(
   "/archive",
   requireAuth,
   requireAdmin,

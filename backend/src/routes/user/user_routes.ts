@@ -44,7 +44,7 @@ router.put(
   updateUser
 );
 
-router.patch(
+router.put(
   "/:userId",
   requireAuth,
   requireAdmin,

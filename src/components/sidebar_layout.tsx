@@ -51,7 +51,7 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
       id: "clients",
       label: "Clients",
       icon: Users,
-      url: "/backoffice/clients",
+      url: "/backoffice/users",
     },
     {
       id: "category",

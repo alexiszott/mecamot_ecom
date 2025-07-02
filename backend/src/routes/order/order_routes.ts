@@ -44,7 +44,7 @@ router.put(
   updateOrder
 );
 
-router.patch(
+router.put(
   "/:id/archive",
   requireAuth,
   requireAdmin,

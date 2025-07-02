@@ -112,12 +112,12 @@ export const categoriesService = {
   },
 
   archiveCategories: async (ids: string[]) => {
-    const response = await api.patch("categories/archive", { ids });
+    const response = await api.put("categories/archive", { ids });
     return response.data;
   },
 
   archiveCategory: async (id: string) => {
-    const response = await api.patch(`categories/${id}/archive`);
+    const response = await api.put(`categories/${id}/archive`);
     return response.data;
   },
 };
@@ -165,17 +165,17 @@ export const productService = {
   },
 
   archiveProducts: async (ids: string[]) => {
-    const response = await api.patch("products/archive", { ids });
+    const response = await api.put("products/archive", { ids });
     return response.data;
   },
 
   archiveProduct: async (id: string) => {
-    const response = await api.patch(`products/${id}/archive`);
+    const response = await api.put(`products/${id}/archive`);
     return response.data;
   },
 
   restoreProduct: async (id: string) => {
-    const response = await api.patch(`products/${id}/restore`);
+    const response = await api.put(`products/${id}/restore`);
     return response.data;
   },
 };
@@ -207,7 +207,7 @@ export const userService = {
   },
 
   archiveUser: async (id: string) => {
-    const response = await api.patch(`users/${id}/archive`);
+    const response = await api.put(`users/${id}/archive`);
     return response.data;
   },
 };

@@ -47,10 +47,6 @@ export const fetchUsersService = async (query: any) => {
     ...paginationOptions,
     where,
     orderBy,
-    include: {
-      accounts: true,
-      orders: true,
-    },
     select: {
       id: true,
       firstname: true,

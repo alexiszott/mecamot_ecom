@@ -42,6 +42,7 @@ export const registerSchema = z.object({
 
   lastname: z
     .string()
+    .toUpperCase()
     .min(2, {
       message: "Le nom de famille doit contenir au moins 2 caractères.",
     })

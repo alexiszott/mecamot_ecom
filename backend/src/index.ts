@@ -29,7 +29,7 @@ app.use(
         ? "https://votre-domaine.com"
         : "http://localhost:3000",
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    methods: ["GET", "POST", "PUT"],
     allowedHeaders: ["Content-Type"],
     optionsSuccessStatus: 200,
   })

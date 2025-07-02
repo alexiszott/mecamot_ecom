@@ -3,31 +3,20 @@ import { useState, useEffect } from "react";
 import {
   Package,
   Search,
-  Plus,
   AlertTriangle,
   DollarSign,
   XCircle,
-  Minus,
 } from "lucide-react";
 import { useAuth } from "../../context/auth_context";
-import {
-  categoriesService,
-  productService,
-  statsService,
-  userService,
-} from "../../../lib/api";
-import { Product } from "../../../type/product_type";
+import { statsService, userService } from "../../../lib/api";
 import { PaginationData } from "../../../type/pagination_type";
-import AddProductModal from "../../../modal/products/add_product";
 import DataTable from "react-data-table-component";
 import StatsCard from "../../../components/stats_card";
 import { ToastProvider, useToast } from "../../../components/toast_provider";
 import SidebarLayout from "../../../components/sidebar_layout";
-import DeleteConfirmationModal from "../../../modal/delete_confirmation";
-import EditProductModal from "../../../modal/products/edit_product";
-import { Category } from "../../../type/category_type";
 import { usersColumns } from "../../../datatable_type/user_data_table";
 import { User } from "../../../type/user_type";
+import DetailsUserModal from "../../../modal/user/details_user";
 
 export default function UsersPage() {
   return (
@@ -49,14 +38,13 @@ function UsersPageContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   const [limit, setLimit] = useState(10);
-  const [selectedRows, setSelectedRows] = useState<Product[]>([]);
-  const [toggledClearRows, setToggleClearRows] = useState(false);
 
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -87,35 +75,22 @@ function UsersPageContent() {
     }
   }, [user, loading]);
 
-  const handleDeleteProducts = async () => {
+  const handleEdit = async (user) => {
     try {
-      setShowDeleteModal(true);
-    } catch (error) {
-      console.error("Erreur lors de la suppression des produits:", error);
-      showToast("Erreur lors de la suppression des produits", "error");
-    }
-  };
-
-  const handleDeleteProduct = async (id: string) => {
-    try {
-      setShowDeleteModal(true);
-    } catch (error) {
-      console.error("Erreur lors de la suppression du produit:", error);
-      showToast("Erreur lors de la suppression du produit", "error");
-    }
-  };
-
-  const handleEdit = async (product) => {
-    try {
-      setSelectedProduct(product);
+      setSelectedUser(user);
       setShowEditModal(true);
     } catch (error) {
       console.error("Erreur lors de la suppression des produits:", error);
     }
   };
 
-  const handleChange = ({ selectedRows }) => {
-    setSelectedRows(selectedRows);
+  const handleDetails = async (user) => {
+    try {
+      setSelectedUser(user);
+      setShowDetailsModal(true);
+    } catch (error) {
+      console.error("Erreur lors de la suppression des produits:", error);
+    }
   };
 
   const fetchUsers = async () => {
@@ -133,7 +108,7 @@ function UsersPageContent() {
       const usersEnrichis = response.data.data.map((user) => ({
         ...user,
         onEdit: handleEdit,
-        onDelete: handleDeleteProduct,
+        onDetails: handleDetails,
       }));
 
       if (response.success) {
@@ -298,9 +273,6 @@ function UsersPageContent() {
           progressPending={loadingUsers}
           columns={usersColumns}
           data={users}
-          selectableRows
-          onSelectedRowsChange={handleChange}
-          clearSelectedRows={toggledClearRows}
           noDataComponent={
             <div className="flex flex-col items-center justify-center py-12">
               <Package className="w-16 h-16 text-gray-300 mb-4" />
@@ -375,17 +347,10 @@ function UsersPageContent() {
         />
       </div>
 
-      <DeleteConfirmationModal
-        isOpen={showDeleteModal}
-        onClose={() => setSelectedRows([])}
-        title={`Supprimer ${selectedRows.length} produit${
-          selectedRows.length > 1 ? "s" : ""
-        }`}
-        message={`Vous êtes sûr de vouloir supprimer ${
-          selectedRows.length
-        } produit${selectedRows.length > 1 ? "s" : ""} ?`}
-        itemName={selectedRows.map((p) => p.name).join(", ")}
-        onConfirm={handleDeleteProducts}
+      <DetailsUserModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        userData={selectedUser}
       />
     </>
   );

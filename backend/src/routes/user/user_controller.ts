@@ -1,6 +1,6 @@
 import { error, success } from "../../utils/apiReponse.js";
 import { log } from "../../utils/logger.js";
-import { fetchUserService } from "./user_service.js";
+import { fetchUsersService } from "./user_service.js";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
 
 export const fetchUsers = async (req, res, next) => {
@@ -11,7 +11,7 @@ export const fetchUsers = async (req, res, next) => {
       ip: req.ip,
     });
 
-    const result = await fetchUserService(req.query);
+    const result = await fetchUsersService(req.query);
 
     if (!result) {
       return error(res, {
