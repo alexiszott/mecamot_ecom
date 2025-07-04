@@ -112,7 +112,7 @@ export const categoriesService = {
   },
 
   archiveCategories: async (ids: string[]) => {
-    const response = await api.put("categories/archive", { ids });
+    const response = await api.patch("categories/archive", { ids });
     return response.data;
   },
 
@@ -164,18 +164,13 @@ export const productService = {
     return response.data;
   },
 
-  archiveProducts: async (ids: string[]) => {
-    const response = await api.put("products/archive", { ids });
-    return response.data;
-  },
-
   archiveProduct: async (id: string) => {
     const response = await api.put(`products/${id}/archive`);
     return response.data;
   },
 
-  restoreProduct: async (id: string) => {
-    const response = await api.put(`products/${id}/restore`);
+  archiveProducts: async (ids: string[]) => {
+    const response = await api.patch("products/archive", { ids });
     return response.data;
   },
 };

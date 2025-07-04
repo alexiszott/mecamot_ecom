@@ -53,12 +53,6 @@ router.put(
   archiveProduct
 );
 
-router.put(
-  "/archive",
-  requireAuth,
-  requireAdmin,
-  //validateBody(productBodyArchiveSchema),
-  archiveProducts
-);
+router.patch("/archive", requireAuth, requireAdmin, archiveProducts);
 
 export default router;

@@ -41,10 +41,11 @@ function CategoriesPageContent() {
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+
+  const [deletingCategory, setDeletingCategory] = useState<Category[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [limit, setLimit] = useState(10);
-  const [selectedRows, setSelectedRows] = useState<Category[]>([]);
   const [toggledClearRows, setToggleClearRows] = useState(false);
 
   const [pagination, setPagination] = useState<PaginationData>({
@@ -73,53 +74,66 @@ function CategoriesPageContent() {
     }
   }, [user, loading]);
 
-  const handleDeleteProducts = async () => {
+  const handleDeleteMultipleProducts = async () => {
     try {
-      setShowDeleteModal(true);
-      //if (
-      //  window.confirm(
-      //    `Vous êtes sûr de vouloir supprimer : ( ${
-      //      selectedRows.length
-      //    } ) product${selectedRows.length > 1 ? "s" : ""}?`
-      //  )
-      //) {
-      //  const productIds = selectedRows.map((product) => product.id);
-      //  const response = await productService.archiveProducts(productIds);
-      //
-      //  if (response.success) {
-      //    showToast(
-      //      `${selectedRows.length} produit${
-      //        selectedRows.length > 1 ? "s" : ""
-      //      } supprimé${selectedRows.length > 1 ? "s" : ""} avec succès`,
-      //      "success"
-      //    );
-      //    refresh();
-      //  } else {
-      //    showToast("Erreur lors de la suppression des produits", "error");
-      //  }
-      //}
+      if (deletingCategory.length > 0) {
+        setDeletingCategory(deletingCategory);
+        setShowDeleteModal(true);
+      } else {
+        showToast("Aucune catégorie sélectionnée", "warning");
+      }
     } catch (error) {
-      console.error("Erreur lors de la suppression des produits:", error);
       showToast("Erreur lors de la suppression des produits", "error");
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
+  const handleDeleteProduct = async (category: Category) => {
     try {
+      setDeletingCategory([category]);
       setShowDeleteModal(true);
-      //if (window.confirm(`Vous êtes sûr de vouloir supprimer ce produit ?`)) {
-      //  const response = await productService.archiveProduct(id);
-      //
-      //  if (response.success) {
-      //    showToast("Produit supprimé avec succès", "success");
-      //    refresh();
-      //  } else {
-      //    showToast("Erreur lors de la suppression du produit", "error");
-      //  }
-      //}
     } catch (error) {
-      console.error("Erreur lors de la suppression du produit:", error);
       showToast("Erreur lors de la suppression du produit", "error");
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      const idsToDelete = deletingCategory.map((p) => p.id);
+
+      if (idsToDelete.length === 0) {
+        showToast(
+          "Aucune catégorie sélectionnée pour la suppression",
+          "warning"
+        );
+        return;
+      } else if (idsToDelete.length > 100) {
+        showToast(
+          "Vous ne pouvez pas supprimer plus de 100 catégories à la fois",
+          "warning"
+        );
+        return;
+      } else if (idsToDelete.length > 1) {
+        const response = await categoriesService.archiveCategories(idsToDelete);
+        if (response.success) {
+          showToast("Catégories supprimées avec succès", "success");
+        } else {
+          showToast("Erreur lors de la suppression des catégories", "error");
+        }
+      } else {
+        const productId = idsToDelete[0];
+        console.log("Deleting single category with ID:", productId);
+        const response = await categoriesService.archiveCategory(productId);
+        if (response.success) {
+          showToast("Catégorie supprimé avec succès", "success");
+        } else {
+          showToast("Erreur lors de la suppression des catégories", "error");
+        }
+      }
+      setShowDeleteModal(false);
+      setDeletingCategory([]);
+      refresh();
+    } catch (error) {
+      showToast("Erreur lors de la suppression", "error");
     }
   };
 
@@ -133,16 +147,15 @@ function CategoriesPageContent() {
   };
 
   const handleChange = ({ selectedRows }) => {
-    setSelectedRows(selectedRows);
+    setDeletingCategory(selectedRows);
   };
 
-  const handleProductAdded = async () => {
+  const handleCategoryAdded = async () => {
     await refresh();
     showToast("Categories ajouté avec succès", "success");
   };
 
   const refresh = async () => {
-    setSelectedRows([]);
     setToggleClearRows(!toggledClearRows);
     await fetchCategories();
   };
@@ -166,8 +179,6 @@ function CategoriesPageContent() {
         onEdit: handleEdit,
         onDelete: handleDeleteProduct,
       }));
-
-      console.log("Categories fetched:", response);
 
       if (response.success) {
         setCategories(categoriesEnrichis || []);
@@ -262,9 +273,9 @@ function CategoriesPageContent() {
               )}
             </div>
             <div className="flex space-x-2">
-              {selectedRows.length > 0 && (
+              {deletingCategory.length > 0 && (
                 <button
-                  onClick={handleDeleteProducts}
+                  onClick={handleDeleteMultipleProducts}
                   key="delete"
                   className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
                 >
@@ -386,27 +397,34 @@ function CategoriesPageContent() {
 
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
-        onClose={() => setSelectedRows([])}
-        title={`Supprimer ${selectedRows.length} catégorie${
-          selectedRows.length > 1 ? "s" : ""
-        }`}
-        message={`Vous êtes sûr de vouloir supprimer ${
-          selectedRows.length
-        } produit${selectedRows.length > 1 ? "s" : ""} ?`}
-        itemName={selectedRows.map((p) => p.name).join(", ")}
-        onConfirm={handleDeleteProducts}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingCategory([]);
+        }}
+        title={
+          deletingCategory.length > 1
+            ? `Supprimer ${deletingCategory.length} catégories ?`
+            : `Supprimer la catégorie ?`
+        }
+        message={
+          deletingCategory.length > 1
+            ? `Vous êtes sur le point de supprimer ${deletingCategory.length} catégories. Cette action est irréversible.`
+            : `Vous êtes sur le point de supprimer "${deletingCategory[0]?.name}". Cette action est irréversible.`
+        }
+        itemName={deletingCategory.map((p) => p.name).join(", ")}
+        onConfirm={confirmDelete}
       />
 
       <AddCategoryModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        onAdded={handleProductAdded}
+        onAdded={handleCategoryAdded}
       />
 
       <EditCategoryModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
-        onUpdated={handleProductAdded}
+        onUpdated={handleCategoryAdded}
         category={selectedCategory}
       />
     </>

@@ -58,25 +58,46 @@ export const fetchCategoriesPaginatedService = async (query: any) => {
 };
 
 export const fetchCategoriesService = async () => {
-  return await prisma.category.findMany();
+  return await prisma.category.findMany({
+    where: { isDeleted: false },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+    },
+    orderBy: { name: "asc" },
+  });
 };
 
 export const fetchCategoryService = async (id: string) => {
   return await prisma.category.findUnique({
-    where: { id },
+    where: { id, isDeleted: false },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+    },
   });
 };
 
 export const createCategoryService = async (data: any) => {
   return await prisma.category.create({
-    data,
+    data: {
+      name: data.name,
+      description: data.description ?? "",
+      isDeleted: false,
+    },
   });
 };
 
 export const updateCategoryService = async (id: string, data: any) => {
   return await prisma.category.update({
     where: { id },
-    data,
+    data: {
+      name: data.name,
+      description: data.description ?? "",
+      isDeleted: false,
+    },
   });
 };
 

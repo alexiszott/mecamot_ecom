@@ -20,6 +20,11 @@ export const createUserService = async (
       lastname: lastname,
       phone: phone,
       isEmailVerified: false,
+      cart: {
+        create: {
+          items: [],
+        },
+      },
     },
   });
   return user;

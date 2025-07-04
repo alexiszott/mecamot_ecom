@@ -10,6 +10,10 @@ import {
 import { success, error } from "../../utils/apiReponse.js";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
 import { log } from "../../utils/logger.js";
+import {
+  generateSkuCode,
+  generateSlugCode,
+} from "../../utils/generate_slug_sku.js";
 
 export const fetchProducts = async (req, res, next) => {
   try {
@@ -89,32 +93,9 @@ export const createProduct = async (req, res, next) => {
       ip: req.ip,
     });
 
-    const slug = req.body.name
-      .toLowerCase()
-      .normalize("NFD") // enlève les accents (é → e)
-      .replace(/[\u0300-\u036f]/g, "") // supprime les diacritiques
-      .replace(/[^a-z0-9\s-]/g, "") // enlève les caractères spéciaux sauf tirets/espaces
-      .trim()
-      .replace(/\s+/g, "-") // remplace les espaces par des tirets
-      .replace(/-+/g, "-") // supprime les tirets multiples
-      .slice(0, 100);
+    req.body.slug = generateSlugCode(req.body.name);
 
-    console.log("Slug généré :", slug);
-
-    req.body.slug = slug;
-
-    const prefix = req.body.name
-      .toUpperCase()
-      .normalize("NFD") // supprime accents
-      .replace(/[\u0300-\u036f]/g, "") // ex: É → E
-      .replace(/[^A-Z0-9]/g, "") // enlève tout sauf lettres/chiffres
-      .slice(0, 5); // on prend les 5 premiers caractères
-
-    const random = Math.floor(1000 + Math.random() * 9000);
-
-    const sku = `${prefix}-${random}`;
-
-    req.body.sku = sku;
+    req.body.sku = generateSkuCode(req.body.name);
 
     const product = await createProductService(req.body);
 
@@ -149,6 +130,8 @@ export const updateProduct = async (req, res, next) => {
       updateData: req.body,
       ip: req.ip,
     });
+
+    req.body.slug = generateSlugCode(req.body.name);
 
     const product = await updateProductService(id, req.body);
 

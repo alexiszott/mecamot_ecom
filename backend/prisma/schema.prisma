@@ -28,6 +28,7 @@ model User {
   updatedAt         DateTime  @updatedAt
   accounts          Account[]
   orders            Order[]
+  cart              Cart?
   stockReservations StockReservation[]
   EmailVerificationToken EmailVerificationToken[]
 }
@@ -66,6 +67,28 @@ model Session {
   sess      Json
   expire    DateTime
   @@map("user_sessions")
+}
+
+// Cart
+model Cart {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now())
+  expiresAt DateTime? @default(dbgenerated("now() + interval '5 days'"))
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  productId String
+  quantity  Int      @default(1)
+  price     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 
@@ -118,15 +141,34 @@ model Order {
   id                    String        @id @default(cuid())
   userId                String    
   status                Status        @default(PENDING)
-  totalPrice            Decimal       @db.Decimal(10, 2)
-  shippingPrice         Decimal       @db.Decimal(10, 2) @default(0.00)
   paymentMethod         String?       
   paymentStatus         PaymentStatus  @default(PENDING)
   paymentIntentId       String?
   paymentMethodId       String?
   paidAt                DateTime?
-  shippingAddress       String?
   notes                 String?
+
+  subtotal              Decimal  @db.Decimal(10, 2)
+  shippingPrice         Decimal  @db.Decimal(10, 2) @default(0.00)
+  totalPrice            Decimal  @db.Decimal(10, 2)
+  taxPrice              Decimal  @db.Decimal(10, 2)
+
+  shippingAddress       String?
+  shippingCity          String?
+  shippingPostalCode    String?
+  shippingCountry       String?
+  shippingPhone         String?
+  recipientName         String?
+
+  deliveryMethod        String?
+  deliveryDelay         String?
+  trackingNumber        String?
+  trackingUrl           String?
+  shippedAt             DateTime?
+  deliveredAt           DateTime?
+
+  totalWeight           Float?
+
   isDeleted             Boolean       @default(false)
   orderItems            OrderItem[]
   stockReservations     StockReservation[]
@@ -136,15 +178,16 @@ model Order {
 }
 
 model OrderItem {
-  id        String    @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  price     Decimal   @db.Decimal(10, 2)
-  createdAt DateTime  @default(now())
+  id              String    @id @default(cuid())
+  orderId         String
+  productId       String
+  quantity        Int
+  totalWeight     Float?
+  price           Decimal   @db.Decimal(10, 2)
+  createdAt       DateTime  @default(now())
 
-  order     Order     @relation(fields: [orderId], references: [id])
-  product   Product   @relation(fields: [productId], references: [id])
+  order           Order     @relation(fields: [orderId], references: [id])
+  product         Product   @relation(fields: [productId], references: [id])
 }
 
 model Product {
@@ -159,6 +202,7 @@ model Product {
   sku         String?
   brand       String?
   categoryid  String?
+  weight      Float?
   isDeleted   Boolean     @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  archiveCategories,
   archiveCategory,
   createCategory,
   fetchCategories,
@@ -15,9 +16,8 @@ import {
   validateBody,
 } from "../../middleware/query_validation.js";
 import {
-  productQuerySchema,
   idParamsSchema,
-  productBodySchema,
+  categoryBodySchema,
 } from "../../utils/validate_schema.js";
 
 const router = Router();
@@ -26,7 +26,7 @@ const router = Router();
 
 router.get("/", fetchCategories);
 router.get("/paginated", fetchCategoriesPaginated);
-router.get("/:id", validateQuery(productQuerySchema), fetchCategory);
+router.get("/:id", validateQuery(idParamsSchema), fetchCategory);
 
 // Protected routes
 
@@ -34,7 +34,7 @@ router.post(
   "/",
   requireAuth,
   requireAdmin,
-  validateBody(productBodySchema),
+  validateBody(categoryBodySchema),
   createCategory
 );
 
@@ -43,16 +43,18 @@ router.put(
   requireAuth,
   requireAdmin,
   validateParams(idParamsSchema),
-  validateBody(productBodySchema),
+  validateBody(categoryBodySchema),
   updateCategory
 );
 
-router.delete(
-  "/:id",
+router.put(
+  "/:id/archive",
   requireAuth,
   requireAdmin,
   validateParams(idParamsSchema),
   archiveCategory
 );
+
+router.patch("/archive", requireAuth, requireAdmin, archiveCategories);
 
 export default router;

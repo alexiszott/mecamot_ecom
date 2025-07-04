@@ -23,7 +23,7 @@ export const categoriesColumns = [
         </button>
         <button
           className="text-red-500 hover:text-red-700"
-          onClick={() => row.onDelete(row.id)}
+          onClick={() => row.onDelete(row)}
         >
           <Trash2 />
         </button>

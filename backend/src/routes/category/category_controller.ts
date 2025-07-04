@@ -191,23 +191,23 @@ export const updateCategory = async (req, res, next) => {
 
 export const archiveCategories = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { ids } = req.body;
 
-    log.userAction("delete_product", req.user?.id, {
-      productId: id,
+    log.userAction("delete bulk products", req.user?.id, {
+      productId: ids,
       ip: req.ip,
     });
 
-    await archiveCategoriesService(id);
+    await archiveCategoriesService(ids);
 
-    log.info("Categorie supprimé avec succès", {
-      productId: id,
+    log.info("Categories supprimées avec succès", {
+      productId: ids,
       adminId: req.user?.id,
     });
 
-    return success(res, null, "Categorie supprimé avec succès");
+    return success(res, null, "Categories supprimées avec succès");
   } catch (err: any) {
-    log.error("Erreur lors de la suppression de la categorie", {
+    log.error("Erreur lors de la suppression des categories", {
       error: err.message,
       productId: req.params.id,
       adminId: req.user?.id,
@@ -215,7 +215,7 @@ export const archiveCategories = async (req, res, next) => {
 
     return error(res, {
       status: HTTP_STATUS_CODES.InternalServerError,
-      message: "Erreur lors de la suppression de la categorie",
+      message: "Erreur lors de la suppression des categories",
       code: HTTP_STATUS_CODES.InternalServerError,
       errors: { general: ["Erreur interne du serveur"] },
     });
@@ -229,14 +229,14 @@ export const archiveCategory = async (req, res, next) => {
     const { id } = req.params;
 
     log.userAction("delete_product", req.user?.id, {
-      productId: id,
+      categoryId: id,
       ip: req.ip,
     });
 
     await archiveCategoryService(id);
 
     log.info("Categorie supprimé avec succès", {
-      productId: id,
+      categoryId: id,
       adminId: req.user?.id,
     });
 
@@ -244,7 +244,7 @@ export const archiveCategory = async (req, res, next) => {
   } catch (err: any) {
     log.error("Erreur lors de la suppression de la categorie", {
       error: err.message,
-      productId: req.params.id,
+      categoryId: req.params.id,
       adminId: req.user?.id,
     });
 

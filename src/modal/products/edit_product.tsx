@@ -4,12 +4,14 @@ import { Save, Upload } from "lucide-react";
 import ModalBase from "../shared/modal_base";
 import { Product } from "../../type/product_type";
 import { productService } from "../../lib/api";
+import { Category } from "../../type/category_type";
 
 interface EditProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdated: () => void;
   product: Product | null;
+  categories?: Category[] | null;
 }
 
 interface ProductFormData {
@@ -28,6 +30,7 @@ export default function EditProductModal({
   onClose,
   onUpdated,
   product,
+  categories,
 }: EditProductModalProps) {
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [formData, setFormData] = useState<ProductFormData>({
@@ -43,18 +46,6 @@ export default function EditProductModal({
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  const category = [
-    "Casques",
-    "Gants",
-    "Bottes",
-    "Combinaisons",
-    "Blousons",
-    "Pantalons",
-    "Accessoires",
-    "Pièces détachées",
-  ];
-
-  // Pré-remplir le formulaire quand le produit change
   useEffect(() => {
     if (product && isOpen) {
       setFormData({
@@ -62,7 +53,7 @@ export default function EditProductModal({
         description: product.description || "",
         price: product.price || 0,
         stock: product.stock || 0,
-        category: product.category || "",
+        category: product.category?.id || "",
         publish: product.publish || false,
         brand: product.brand || "",
         image: null,
@@ -82,7 +73,6 @@ export default function EditProductModal({
       [name]: value,
     }));
 
-    // Effacer l'erreur pour ce champ
     if (formErrors[name]) {
       setFormErrors((prev) => ({
         ...prev,
@@ -282,9 +272,9 @@ export default function EditProductModal({
               }`}
             >
               <option value="">Sélectionner une catégorie</option>
-              {category.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+              {categories?.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
                 </option>
               ))}
             </select>

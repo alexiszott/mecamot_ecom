@@ -28,6 +28,7 @@ import SidebarLayout from "../../../components/sidebar_layout";
 import DeleteConfirmationModal from "../../../modal/delete_confirmation";
 import EditProductModal from "../../../modal/products/edit_product";
 import { Category } from "../../../type/category_type";
+import { set } from "react-hook-form";
 
 export default function ProductsPage() {
   return (
@@ -56,11 +57,12 @@ function ProductsPageContent() {
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [deletingProducts, setDeletingProducts] = useState<Product[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [limit, setLimit] = useState(10);
-  const [selectedRows, setSelectedRows] = useState<Product[]>([]);
+
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [toggledClearRows, setToggleClearRows] = useState(false);
 
   const [stats, setStats] = useState({
@@ -92,53 +94,66 @@ function ProductsPageContent() {
     }
   }, [user, loading]);
 
-  const handleDeleteProducts = async () => {
+  const handleDeleteMultipleProducts = async () => {
     try {
-      setShowDeleteModal(true);
-      //if (
-      //  window.confirm(
-      //    `Vous êtes sûr de vouloir supprimer : ( ${
-      //      selectedRows.length
-      //    } ) product${selectedRows.length > 1 ? "s" : ""}?`
-      //  )
-      //) {
-      //  const productIds = selectedRows.map((product) => product.id);
-      //  const response = await productService.archiveProducts(productIds);
-      //
-      //  if (response.success) {
-      //    showToast(
-      //      `${selectedRows.length} produit${
-      //        selectedRows.length > 1 ? "s" : ""
-      //      } supprimé${selectedRows.length > 1 ? "s" : ""} avec succès`,
-      //      "success"
-      //    );
-      //    refresh();
-      //  } else {
-      //    showToast("Erreur lors de la suppression des produits", "error");
-      //  }
-      //}
+      if (deletingProducts.length > 0) {
+        setDeletingProducts(deletingProducts);
+        setShowDeleteModal(true);
+      } else {
+        showToast("Aucun produit sélectionné", "warning");
+      }
     } catch (error) {
       console.error("Erreur lors de la suppression des produits:", error);
       showToast("Erreur lors de la suppression des produits", "error");
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
+  const handleDeleteProduct = async (product: Product) => {
     try {
+      setDeletingProducts([product]);
       setShowDeleteModal(true);
-      //if (window.confirm(`Vous êtes sûr de vouloir supprimer ce produit ?`)) {
-      //  const response = await productService.archiveProduct(id);
-      //
-      //  if (response.success) {
-      //    showToast("Produit supprimé avec succès", "success");
-      //    refresh();
-      //  } else {
-      //    showToast("Erreur lors de la suppression du produit", "error");
-      //  }
-      //}
     } catch (error) {
       console.error("Erreur lors de la suppression du produit:", error);
       showToast("Erreur lors de la suppression du produit", "error");
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      const idsToDelete = deletingProducts.map((p) => p.id);
+
+      if (idsToDelete.length === 0) {
+        showToast("Aucun produit sélectionné pour la suppression", "warning");
+        return;
+      } else if (idsToDelete.length > 100) {
+        showToast(
+          "Vous ne pouvez pas supprimer plus de 100 produits à la fois",
+          "warning"
+        );
+        return;
+      } else if (idsToDelete.length > 1) {
+        console.log("Suppression de plusieurs produits:", idsToDelete);
+        const response = await productService.archiveProducts(idsToDelete);
+        if (response.success) {
+          showToast("Produits supprimés avec succès", "success");
+        } else {
+          showToast("Erreur lors de la suppression des produits", "error");
+        }
+      } else {
+        const productId = idsToDelete[0];
+        const response = await productService.archiveProduct(productId);
+        if (response.success) {
+          showToast("Produit supprimé avec succès", "success");
+        } else {
+          showToast("Erreur lors de la suppression du produit", "error");
+        }
+      }
+      setShowDeleteModal(false);
+      setDeletingProducts([]);
+      refresh();
+    } catch (error) {
+      console.error("Erreur suppression produit(s):", error);
+      showToast("Erreur lors de la suppression", "error");
     }
   };
 
@@ -152,7 +167,7 @@ function ProductsPageContent() {
   };
 
   const handleChange = ({ selectedRows }) => {
-    setSelectedRows(selectedRows);
+    setDeletingProducts(selectedRows);
   };
 
   const handleProductAdded = async () => {
@@ -161,11 +176,15 @@ function ProductsPageContent() {
   };
 
   const refresh = async () => {
-    setSelectedRows([]);
     setToggleClearRows(!toggledClearRows);
+    setSelectedProduct(null);
+    setSearchTerm("");
+    setSelectedCategory("all");
+    setStockFilter("all");
+    setDeletingProducts([]);
     await fetchProducts();
-    await fetchStats();
     await fetchCategories();
+    await fetchStats();
   };
 
   const fetchProducts = async () => {
@@ -180,7 +199,9 @@ function ProductsPageContent() {
         stockFilter: stockFilter === "all" ? "" : stockFilter,
       };
 
-      const response = await productService.fetchProducts(params);
+      console.log("Fetching products with params:", params);
+
+      const response = await productService.fetchProductsPaginated(params);
 
       const productsEnrichis = response.data.data.map((product) => ({
         ...product,
@@ -217,8 +238,8 @@ function ProductsPageContent() {
   const fetchCategories = async () => {
     try {
       const response = await categoriesService.fetchCategories();
-      if (response.success && Array.isArray(response.data.data)) {
-        setCategories(response.data.data);
+      if (response.success && Array.isArray(response.data)) {
+        setCategories(response.data);
       } else {
         console.error("Categories mal formatées :", response.data);
         setCategories([]);
@@ -408,9 +429,9 @@ function ProductsPageContent() {
               )}
             </div>
             <div className="flex space-x-2">
-              {selectedRows.length > 0 && (
+              {deletingProducts.length > 0 && (
                 <button
-                  onClick={handleDeleteProducts}
+                  onClick={handleDeleteMultipleProducts}
                   key="delete"
                   className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
                 >
@@ -530,28 +551,40 @@ function ProductsPageContent() {
 
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
-        onClose={() => setSelectedRows([])}
-        title={`Supprimer ${selectedRows.length} produit${
-          selectedRows.length > 1 ? "s" : ""
-        }`}
-        message={`Vous êtes sûr de vouloir supprimer ${
-          selectedRows.length
-        } produit${selectedRows.length > 1 ? "s" : ""} ?`}
-        itemName={selectedRows.map((p) => p.name).join(", ")}
-        onConfirm={handleDeleteProducts}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingProducts([]);
+        }}
+        title={
+          deletingProducts.length > 1
+            ? `Supprimer ${deletingProducts.length} produits ?`
+            : `Supprimer le produit ?`
+        }
+        message={
+          deletingProducts.length > 1
+            ? `Vous êtes sur le point de supprimer ${deletingProducts.length} produits. Cette action est irréversible.`
+            : `Vous êtes sur le point de supprimer "${deletingProducts[0]?.name}". Cette action est irréversible.`
+        }
+        itemName={deletingProducts.map((p) => p.name).join(", ")}
+        onConfirm={confirmDelete}
       />
 
       <AddProductModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onAdded={handleProductAdded}
+        categories={categories}
       />
 
       <EditProductModal
         isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedProduct(null);
+        }}
         onUpdated={handleProductAdded}
         product={selectedProduct}
+        categories={categories}
       />
     </>
   );

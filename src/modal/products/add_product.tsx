@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Plus, X, Upload, Save } from "lucide-react";
 import { productService } from "../../lib/api";
 import ModalBase from "../shared/modal_base";
+import { Category } from "../../type/category_type";
 
 interface ProductFormData {
   name: string;
@@ -19,12 +20,14 @@ interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdded: () => void;
+  categories: Category[] | null;
 }
 
 export default function AddProductModal({
   isOpen,
   onClose,
   onAdded,
+  categories,
 }: AddProductModalProps) {
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
@@ -40,8 +43,6 @@ export default function AddProductModal({
     publish: false,
     image: null,
   });
-
-  const category = [];
 
   const handleInputChange = (
     e: React.ChangeEvent<

@@ -7,6 +7,7 @@ import {
 
 import { prisma } from "../../prismaClient.js";
 import { log } from "../../utils/logger.js";
+import { Prisma } from "@prisma/client";
 
 export const fetchProductsService = async (query: any) => {
   query = {
@@ -67,7 +68,19 @@ export const fetchProductService = async (id: string) => {
 
 export const createProductService = async (data: any) => {
   return await prisma.product.create({
-    data,
+    data: {
+      name: data.name,
+      description: data.description,
+      price: new Prisma.Decimal(data.price),
+      stock: data.stock,
+      brand: data.brand,
+      isPublished: data.isPublished,
+      slug: data.slug,
+      sku: data.sku,
+      category: data.categoryid
+        ? { connect: { id: data.categoryid } }
+        : undefined,
+    },
     include: {
       category: true,
     },
@@ -75,10 +88,24 @@ export const createProductService = async (data: any) => {
 };
 
 export const updateProductService = async (id: string, data: any) => {
-  console.log("\n\n\nUpdating product with ID:", id, "Data:\n\n\n", data);
   return await prisma.product.update({
     where: { id },
-    data,
+    data: {
+      name: data.name,
+      description: data.description,
+      price: new Prisma.Decimal(data.price),
+      stock: data.stock,
+      brand: data.brand,
+      isPublished: data.isPublished,
+      slug: data.slug,
+      category: data.category
+        ? {
+            connect: {
+              id: data.category,
+            },
+          }
+        : undefined,
+    },
     include: {
       category: true,
     },
@@ -86,15 +113,25 @@ export const updateProductService = async (id: string, data: any) => {
 };
 
 export const archiveProductsService = async (ids: string[]) => {
-  return await prisma.product.updateMany({
-    where: { id: { in: ids } },
-    data: { isDeleted: true },
-  });
+  return await Promise.all(
+    ids.map((id) => {
+      const slug = `archived-${Date.now()}-${id}`;
+      return prisma.product.update({
+        where: { id },
+        data: {
+          isDeleted: true,
+          isPublished: false,
+          slug,
+        },
+      });
+    })
+  );
 };
 
 export const archiveProductService = async (id: string) => {
+  const slug = `archived-${Date.now()}-${id}`;
   return await prisma.product.update({
     where: { id },
-    data: { isDeleted: true },
+    data: { isDeleted: true, isPublished: false, slug: slug },
   });
 };
