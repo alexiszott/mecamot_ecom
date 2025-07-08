@@ -2,14 +2,7 @@
 
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { authService } from "../../lib/api";
-
-interface User {
-  id: string;
-  email: string;
-  firstname: string;
-  lastname: string;
-  phone?: string;
-}
+import { User } from "../../type/user_type";
 
 type AuthContextType = {
   isLoggedIn: boolean;
@@ -32,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   logout: async () => {},
   checkAuth: async () => {},
+  isAdmin: false,
 });
 
 export const AuthProvider = ({ children }) => {

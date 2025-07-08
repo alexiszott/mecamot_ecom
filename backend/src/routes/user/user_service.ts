@@ -55,6 +55,8 @@ export const fetchUsersService = async (query: any) => {
       phone: true,
       isEmailVerified: true,
       emailVerifiedDate: true,
+      lastLogin: true,
+      lastActivity: true,
       createdAt: true,
       updatedAt: true,
     },

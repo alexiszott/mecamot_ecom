@@ -7,6 +7,8 @@ import {
   getTokenEntryService,
   deleteEmailVerificationTokenService,
   findUserByIdService,
+  updateLastLoginService,
+  updateLastActivityService,
 } from "./auth_service.js";
 import bcrypt from "bcrypt";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
@@ -250,6 +252,9 @@ export const login = async (req, res, next) => {
       rememberMe,
     });
 
+    await updateLastLoginService(user.id);
+    await updateLastActivityService(user.id);
+
     req.session.save((err) => {
       if (err) {
         return next(err);
@@ -294,6 +299,8 @@ export const logout = async (req, res, next) => {
       return success(res, null, "Déconnexion réussie");
     });
 
+    await updateLastActivityService(userId);
+
     log.auth("Déconnexion réussie", { userId, ip: req.ip });
   } catch (error) {
     log.error("Erreur inattendue lors du logout", {
@@ -307,6 +314,8 @@ export const logout = async (req, res, next) => {
 
 export const checkAuth = async (req, res) => {
   const userId = req.session?.userId;
+
+  await updateLastActivityService(userId);
 
   if (!userId) {
     return error(res, {

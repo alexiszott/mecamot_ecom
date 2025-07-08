@@ -1,16 +1,7 @@
-import { Pencil, CircleUserRound, Eye } from "lucide-react";
+import { Pencil, Eye } from "lucide-react";
+import { formatDateTime, formatPhoneNumber } from "../app/utils/format";
 
 export const usersColumns = [
-  {
-    cell: () => (
-      <div className="flex items-center justify-center">
-        <CircleUserRound
-          className="w-10 h-10 rounded-full"
-          strokeWidth={"1px"}
-        />
-      </div>
-    ),
-  },
   {
     name: "Nom",
     selector: (row) => row.firstname,
@@ -23,12 +14,26 @@ export const usersColumns = [
   },
   {
     name: "Téléphone",
-    selector: (row) => row.phone,
+    selector: (row) => {
+      return formatPhoneNumber(row.phone ?? "");
+    },
   },
   {
     name: "Email",
     selector: (row) => row.email,
     sortable: true,
+  },
+  {
+    name: "Dernière connexion",
+    selector: (row) => {
+      return formatDateTime(row.lastLogin) || "Jamais";
+    },
+  },
+  {
+    name: "Dernière actvité",
+    selector: (row) => {
+      return formatDateTime(row.lastActivity) || "Jamais";
+    },
   },
   {
     name: "Actions",

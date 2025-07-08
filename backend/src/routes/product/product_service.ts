@@ -77,8 +77,8 @@ export const createProductService = async (data: any) => {
       isPublished: data.isPublished,
       slug: data.slug,
       sku: data.sku,
-      category: data.categoryid
-        ? { connect: { id: data.categoryid } }
+      category: data.categoryId
+        ? { connect: { id: data.categoryId } }
         : undefined,
     },
     include: {

@@ -175,6 +175,20 @@ export const productService = {
   },
 };
 
+export const cartService = {
+  fetchCartItems: async () => {
+    const response = await api.get(`carts/`);
+    return response.data;
+  },
+
+  addItemToCart: async (productId: string, quantity: number) => {
+    const response = await api.post(`carts/${productId}/add-item`, {
+      params: { qte: quantity },
+    });
+    return response.data;
+  },
+};
+
 export const userService = {
   fetchUsers: async (params?: {
     page?: number;

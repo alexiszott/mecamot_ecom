@@ -16,14 +16,15 @@ model User {
   id                String    @id @default(cuid())
   firstname         String?
   lastname          String?
-  phone             String?   @unique
+  phone             String?   
   email             String    @unique
   isEmailVerified   Boolean?  @default(false)
   emailVerifiedDate DateTime?
   password          String?
   role              Role      @default(USER)
   isDeleted         Boolean   @default(false)
-  lastLogin         DateTime? @default(now())
+  lastLogin         DateTime? 
+  lastActivity      DateTime? @default(now())
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   accounts          Account[]
@@ -85,6 +86,7 @@ model CartItem {
   cartId    String
   cart      Cart     @relation(fields: [cartId], references: [id])
   productId String
+  product   Product  @relation(fields: [productId], references: [id])
   quantity  Int      @default(1)
   price     Decimal  @db.Decimal(10, 2)
   createdAt DateTime @default(now())
@@ -195,20 +197,22 @@ model Product {
   name        String      
   description String?
   price       Decimal     @db.Decimal(10, 2)
+  discountPrice Decimal?   @db.Decimal(10, 2)
   stock       Int
   imageUrl    String?
   slug        String      @unique
   isPublished Boolean     @default(false)
   sku         String?
   brand       String?
-  categoryid  String?
+  categoryId  String?
   weight      Float?
   isDeleted   Boolean     @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
-  category    Category?   @relation(fields: [categoryid], references: [id])
+  category    Category?   @relation(fields: [categoryId], references: [id])
   orderItems  OrderItem[]
   stockReservations StockReservation[]
+  CartItem CartItem[]
 }
 
 model Category {

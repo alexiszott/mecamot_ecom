@@ -1,7 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 
 export const categoriesColumns = [
-  {},
   {
     name: "Nom",
     selector: (row) => row.name,

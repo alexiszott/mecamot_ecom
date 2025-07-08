@@ -6,6 +6,7 @@ import userRoutes from "./routes/user/user_routes.js";
 import productRoutes from "./routes/product/product_routes.js";
 import statsRoutes from "./routes/stats/stats_routes.js";
 import categoryRoutes from "./routes/category/category_routes.js";
+import cartsRoutes from "./routes/cart/cart_routes.js";
 
 import { PrismaClient } from "@prisma/client";
 import { errorHandler } from "./middleware/error_handler_middleware";
@@ -15,6 +16,8 @@ import pgSession from "connect-pg-simple";
 import pg from "pg";
 import helmet from "helmet";
 import { requestLogger } from "./middleware/logger_middleware.js";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./swagger.js";
 
 dotenv.config();
 
@@ -79,11 +82,16 @@ app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/stats", statsRoutes);
+app.use("/api/carts", cartsRoutes);
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // API START
 
 app.listen(PORT, () => {
-  console.log(`✅ Serveur Express lancé sur http://localhost:${PORT}`);
+  console.log(`✅ Serveur Express lancé sur http://localhost:${PORT}
+    `);
+  console.log("✅ Serveur Swagger on http://localhost:3000/api-docs");
 });
 
 // API DISCONNECT

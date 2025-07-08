@@ -30,6 +30,20 @@ export const createUserService = async (
   return user;
 };
 
+export const updateLastLoginService = async (userId: string) => {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { lastLogin: new Date() },
+  });
+};
+
+export const updateLastActivityService = async (userId: string) => {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { lastActivity: new Date() },
+  });
+};
+
 export const findUserByEmailService = async (email: string) => {
   return await prisma.user.findUnique({ where: { email } });
 };

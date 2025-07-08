@@ -2,7 +2,6 @@ import { Check, Pencil, Trash2, X } from "lucide-react";
 import { convertFormatPrice } from "../app/utils/convert_money";
 
 export const productsColumns = [
-  {},
   {
     name: "Nom",
     selector: (row) => row.name,
@@ -19,11 +18,6 @@ export const productsColumns = [
         </span>
       );
     },
-  },
-  {
-    name: "Catégorie",
-    selector: (row) => row.category?.name || "",
-    sortable: true,
   },
   {
     name: "Stock",
@@ -54,6 +48,11 @@ export const productsColumns = [
     ],
   },
   {
+    name: "Catégorie",
+    selector: (row) => row.category?.name || "",
+    sortable: true,
+  },
+  {
     name: "Code SKU",
     selector: (row) => row.sku,
   },
@@ -68,9 +67,17 @@ export const productsColumns = [
     sortable: true,
     cell: (row) => {
       if (row.isPublished) {
-        return <Check className={`w-8 h-8 text-green-500 `} />;
+        return (
+          <div className="flex items-center justify-center bg-green-100 rounded-full p-2">
+            <Check className={`w-5 h-5 text-green-800 `} />
+          </div>
+        );
       } else {
-        return <X className={`w-8 h-8 text-red-500`} />;
+        return (
+          <div className="flex items-center justify-center bg-red-100 rounded-full p-2">
+            <X className={`w-5 h-5 text-red-800`} />
+          </div>
+        );
       }
     },
   },

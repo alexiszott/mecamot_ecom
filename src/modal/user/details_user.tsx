@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { BadgeCheck, BadgeX } from "lucide-react";
 import ModalBase from "../shared/modal_base";
 import { User } from "../../type/user_type";
-import { parsePhoneNumber } from "react-phone-number-input";
+import { formatDateTime, formatPhoneNumber } from "../../app/utils/format";
 
 interface DetailsUserModalProps {
   isOpen: boolean;
@@ -18,36 +18,6 @@ export default function DetailsUserModal({
 }: DetailsUserModalProps) {
   const [loadingData, setLoadingData] = useState(false);
   const [loadingOrder, setLoadingOrder] = useState(false);
-
-  const formatDateTime = (dateString?: string) => {
-    if (!dateString) return "";
-
-    const date = new Date(dateString);
-
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-
-    return `${day}/${month}/${year} à ${hours}:${minutes}`;
-  };
-
-  const formatPhoneNumber = (phone?: string) => {
-    if (!phone) return "Aucun numéro de téléphone";
-    const phoneNumber = parsePhoneNumber(phone);
-
-    const countryCallingCode = `+${phoneNumber?.countryCallingCode} `;
-    const nationalNumber =
-      phoneNumber?.nationalNumber
-        .toString()
-        .replace(/\D/g, "")
-        .match(/.{1,2}/g)
-        ?.join(" ") ?? "";
-
-    return countryCallingCode + nationalNumber;
-  };
 
   if (!isOpen) return null;
 
@@ -86,8 +56,7 @@ export default function DetailsUserModal({
 
         <div className="md:col-span-2">
           <p className="block text-xl font-medium text-gray-700 mb-2">
-            {formatPhoneNumber(userData?.phone ?? "") ||
-              "Aucun numéro de téléphone"}
+            {formatPhoneNumber(userData?.phone ?? "")}
           </p>
         </div>
       </div>
