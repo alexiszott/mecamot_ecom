@@ -2,15 +2,6 @@ import React from "react";
 import { PaginationProps } from "../type/pagination_props_type";
 
 const Pagination = ({ pagination, limit, setPagination }: PaginationProps) => {
-  console.log("Pagination Debug:", {
-    currentPage: pagination.currentPage,
-    totalPages: pagination.totalPages,
-    totalItems: pagination.totalItems,
-    hasNextPage: pagination.hasNextPage,
-    hasPrevPage: pagination.hasPrevPage,
-    limit: limit,
-  });
-
   if (pagination.totalPages <= 1) return null;
 
   return (

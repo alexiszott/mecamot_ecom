@@ -4,7 +4,6 @@ import {
   archiveCategory,
   createCategory,
   fetchCategories,
-  fetchCategoriesPaginated,
   fetchCategory,
   updateCategory,
 } from "./category_controller.js";
@@ -26,32 +25,11 @@ const router = Router();
  * @swagger
  * /categories:
  *   get:
- *     summary: Liste de toutes les catégories
- *     description: Récupère la liste complète des catégories actives
- *     tags: [Categories]
- *     responses:
- *       200:
- *         description: Liste des catégories
- *         content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                     data:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Category'
- */
-router.get("/", fetchCategories);
-
-/**
- * @swagger
- * /categories/paginated:
- *   get:
- *     summary: Liste paginée des catégories
- *     description: Récupère la liste des catégories avec pagination
+ *     summary: Liste des catégories
+ *     description: |
+ *       Récupère la liste des catégories actives.
+ *       - Si les paramètres `page` ou `limit` sont fournis, retourne une liste paginée
+ *       - Sinon, retourne toutes les catégories
  *     tags: [Categories]
  *     parameters:
  *       - in: query
@@ -59,16 +37,14 @@ router.get("/", fetchCategories);
  *         schema:
  *           type: integer
  *           minimum: 1
- *           default: 1
- *         description: Numéro de page
+ *         description: Numéro de page (optionnel - active la pagination)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           minimum: 1
  *           maximum: 100
- *           default: 10
- *         description: Nombre d'éléments par page
+ *         description: Nombre d'éléments par page (optionnel - active la pagination)
  *       - in: query
  *         name: search
  *         schema:
@@ -79,33 +55,63 @@ router.get("/", fetchCategories);
  *         schema:
  *           type: string
  *           enum: [name, createdAt]
- *           default: createdAt
+ *           default: name
  *         description: Champ de tri
  *       - in: query
  *         name: sortOrder
  *         schema:
  *           type: string
  *           enum: [asc, desc]
- *           default: desc
+ *           default: asc
  *         description: Ordre de tri
  *     responses:
  *       200:
- *         description: Liste paginée des catégories
+ *         description: Liste des catégories
  *         content:
  *           application/json:
  *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                     data:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Category'
- *                     pagination:
- *                       $ref: '#/components/schemas/PaginationResponse'
+ *               oneOf:
+ *                 - allOf:
+ *                     - $ref: '#/components/schemas/ApiResponse'
+ *                     - type: object
+ *                       properties:
+ *                         data:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/Category'
+ *                         pagination:
+ *                           $ref: '#/components/schemas/PaginationResponse'
+ *                       description: Réponse paginée (quand page/limit fournis)
+ *                 - allOf:
+ *                     - $ref: '#/components/schemas/ApiResponse'
+ *                     - type: object
+ *                       properties:
+ *                         data:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/Category'
+ *                       description: Toutes les catégories (sans pagination)
+ *             examples:
+ *               with_pagination:
+ *                 summary: Avec pagination
+ *                 value:
+ *                   success: true
+ *                   message: "Categories récupérées avec succès"
+ *                   data: []
+ *                   pagination:
+ *                     currentPage: 1
+ *                     totalPages: 5
+ *                     totalItems: 50
+ *                     hasNextPage: true
+ *                     hasPrevPage: false
+ *               without_pagination:
+ *                 summary: Sans pagination
+ *                 value:
+ *                   success: true
+ *                   message: "Categories récupérées avec succès"
+ *                   data: []
  */
-router.get("/paginated", fetchCategoriesPaginated);
+router.get("/", fetchCategories);
 
 /**
  * @swagger
@@ -137,7 +143,7 @@ router.get("/paginated", fetchCategoriesPaginated);
  *       404:
  *         description: Catégorie non trouvée
  */
-router.get("/:id", validateQuery(idParamsSchema), fetchCategory);
+router.get("/:id", validateParams(idParamsSchema), fetchCategory);
 
 /**
  * @swagger

@@ -51,25 +51,6 @@ export default function ProductCard({
                 {product.brand && (
                   <p className="text-gray-600 mb-2">Marque: {product.brand}</p>
                 )}
-
-                <p className="text-sm text-gray-600 mb-2">
-                  {product.category?.name ?? "Aucune"}
-                </p>
-
-                {product.description && (
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                    {product.description}
-                  </p>
-                )}
-
-                <p className="text-sm text-gray-500">
-                  Stock:{" "}
-                  {product.stock > 0
-                    ? `${product.stock} disponible${
-                        product.stock > 1 ? "s" : ""
-                      }`
-                    : "Indisponible"}
-                </p>
               </div>
 
               <div className="flex flex-col items-end gap-3">
@@ -146,10 +127,6 @@ export default function ProductCard({
           {product.name}
         </h3>
 
-        <p className="text-sm text-gray-600 mb-2">
-          {product.category?.name ?? "Aucune"}
-        </p>
-
         {product.brand && (
           <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
         )}
@@ -167,13 +144,6 @@ export default function ProductCard({
             <ShoppingCart className="h-4 w-4" />
           </button>
         </div>
-
-        <p className="text-xs text-gray-500 mt-2">
-          Stock:{" "}
-          {product.stock > 0
-            ? `${product.stock} disponible${product.stock > 1 ? "s" : ""}`
-            : "Indisponible"}
-        </p>
       </div>
     </div>
   );

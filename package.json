@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
+    "@react-google-maps/api": "^2.20.7",
     "@tailwindcss/postcss": "^4.1.10",
     "autoprefixer": "^10.4.21",
     "axios": "^1.10.0",

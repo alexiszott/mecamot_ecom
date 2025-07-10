@@ -1,11 +1,12 @@
-import {
-  Facebook,
-  FacebookIcon,
-  ShoppingBasket,
-  ShoppingCart,
-  Twitter,
-} from "lucide-react";
-import { ReactNode } from "react";
+"use client";
+
+import { Boxes, Facebook, LogOut, ShoppingCart, User } from "lucide-react";
+import { ReactNode, useState } from "react";
+import { useCart } from "../context/cart_context";
+import { useAuth } from "../context/auth_context";
+import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 interface FrontofficeLayoutProps {
   children: ReactNode;
@@ -14,6 +15,22 @@ interface FrontofficeLayoutProps {
 export default function FrontofficeLayout({
   children,
 }: FrontofficeLayoutProps) {
+  const [isOpenCart, setIsOpenCart] = useState(false);
+  const [isOpenUser, setIsOpenUser] = useState(false);
+  const router = useRouter();
+
+  const { items } = useCart();
+  const { isLoggedIn, loading, user, logout } = useAuth();
+
+  const pathname = usePathname();
+
+  const linkClass = (href: string) =>
+    `transition-colors ${
+      pathname === href
+        ? "text-green-700"
+        : "text-gray-600 hover:text-green-700"
+    }`;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Navigation */}
@@ -27,43 +44,100 @@ export default function FrontofficeLayout({
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a
-                href="/"
-                className="text-gray-600 hover:text-green-700 transition-colors"
-              >
+              <Link href="/" className={linkClass("/")}>
                 Accueil
-              </a>
-              <a
-                href="/frontoffice/showProduct"
-                className="text-gray-600 hover:text-green-700 transition-colors"
+              </Link>
+              <Link
+                href="/frontoffice/ProductList"
+                className={linkClass("/frontoffice/ProductList")}
               >
                 Produits
-              </a>
-              <a
-                href="/categories"
-                className="text-gray-600 hover:text-green-700 transition-colors"
-              >
+              </Link>
+              <Link href="/categories" className={linkClass("/categories")}>
                 Catégories
-              </a>
-              <a
-                href="/contact"
-                className="text-gray-600 hover:text-green-700 transition-colors"
-              >
+              </Link>
+              <Link href="/contact" className={linkClass("/contact")}>
                 Contact
-              </a>
+              </Link>
             </nav>
 
-            {/* User Actions */}
             <div className="flex items-center space-x-4">
-              <button className="text-gray-600 hover:text-green-700 transition-colors relative">
-                <ShoppingCart className="h-6 w-6" />
-                <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  0
-                </span>
-              </button>
-              <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                Connexion
-              </button>
+              <div
+                className="relative"
+                onMouseEnter={() => setIsOpenCart(true)}
+                onMouseLeave={() => setIsOpenCart(false)}
+              >
+                <button
+                  onClick={() => router.push("/frontoffice/cart")}
+                  className="text-gray-600 hover:text-green-700 transition-colors relative  cursor-pointer"
+                >
+                  <ShoppingCart className="h-6 w-6" />
+                  <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {items?.length || 0}
+                  </span>
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                </div>
+              ) : (
+                <>
+                  {!isLoggedIn ? (
+                    <div>
+                      <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        Connexion
+                      </button>
+                      <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        Inscription
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <button
+                        onClick={() => setIsOpenUser(!isOpenUser)}
+                        className="text-gray-600 hover:text-white hover:bg-green-600 p-1 rounded-full transition-colors relative cursor-pointer "
+                      >
+                        <User className="h-6 w-6" />
+                      </button>
+                      {isOpenUser && (
+                        <div className="absolute right-0 top-2 mt-2 w-64 bg-white border rounded-lg shadow-lg z-50">
+                          <div className="p-3 font-semibold border-b text-gray-500">
+                            {user?.firstname} {user?.lastname}
+                          </div>
+                          <div
+                            className="p-3 space-y-2"
+                            onMouseLeave={() => setIsOpenUser(false)}
+                          >
+                            <button
+                              onClick={() => ""}
+                              className="flex items-center px-4 py-2 hover:bg-gray-100 transition-colors text-sm text-gray-600"
+                            >
+                              <User className="h-6 w-6" />
+                              <span className="ml-2">Mon Compte</span>
+                            </button>
+                            <button
+                              onClick={() => ""}
+                              className="flex items-center px-4 py-2 hover:bg-gray-100 transition-colors text-sm text-gray-600"
+                            >
+                              <Boxes className="h-6 w-6" />
+                              <span className="ml-2">Mes commandes</span>
+                            </button>
+                            <button
+                              onClick={() => logout()}
+                              className="flex items-center px-4 py-2 hover:bg-gray-100 transition-colors text-sm text-gray-600"
+                            >
+                              <LogOut className="h-6 w-6" />
+                              <span className="ml-2">Déconnexion</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

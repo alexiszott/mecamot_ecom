@@ -4,17 +4,19 @@ import React, { createContext, useState, useEffect, useContext } from "react";
 import { cartService } from "../../lib/api";
 import { CartItem } from "../../type/cart_item";
 import { Cart } from "../../type/cart_type";
+import { useAuth } from "./auth_context";
+import { useToast } from "../context/toast_context";
 
 type CartContextType = {
   id: string;
-  items: CartItem[] | null;
+  items: CartItem[];
   addItemToCart: (productId: string, quantity: number) => Promise<void>;
   fetchCart: () => Promise<void>;
 };
 
 const CartContext = createContext<CartContextType>({
   id: "",
-  items: null,
+  items: [],
   addItemToCart: async () => {},
   fetchCart: async () => {},
 });
@@ -22,6 +24,8 @@ const CartContext = createContext<CartContextType>({
 export const CartProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<Cart>({ id: "", items: [] });
+  const { isLoggedIn } = useAuth();
+  const { showToast } = useToast();
 
   const fetchCart = async () => {
     try {
@@ -35,6 +39,7 @@ export const CartProvider = ({ children }) => {
       };
 
       setCart(cart);
+      console.log("Cart fetched successfully:", cart);
     } catch (error: any) {
       if (error.response?.status === 401) {
       }
@@ -46,17 +51,28 @@ export const CartProvider = ({ children }) => {
   const addItemToCart = async (productId: string, quantity: number) => {
     try {
       setLoading(true);
-
       const res = await cartService.addItemToCart(productId, quantity);
 
-      console.log("Item added to cart:", res.data);
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+      console.log("Add item to cart response:", res);
+
+      if (res.data.success) {
+        showToast("Erreur lors de l'ajout du produit au panier", "error");
+        return;
+      } else {
+        showToast("Produit ajouté au panier avec succès", "success");
       }
+    } catch (error) {
+      showToast("Erreur lors de l'ajout du produit au panier", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setCart({ id: "", items: [] });
+    }
+  }, [isLoggedIn]);
 
   useEffect(() => {
     fetchCart();

@@ -6,7 +6,7 @@ import {
   archiveCategoriesService,
   archiveCategoryService,
   fetchCategoriesService,
-  fetchCategoriesPaginatedService,
+  fetchAllCategoriesService,
 } from "./category_service.js";
 import { success, error } from "../../utils/apiReponse.js";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
@@ -19,39 +19,6 @@ import { log } from "../../utils/logger.js";
 
 // Récupération de toutes les catégories
 
-export const fetchCategoriesPaginated = async (req, res, next) => {
-  try {
-    log.info("Récupération des categories", {
-      query: req.query,
-      userId: req.session?.userId,
-      ip: req.ip,
-    });
-
-    const result = await fetchCategoriesPaginatedService(req.query);
-
-    log.info("Catégories récupérés avec succès", {
-      totalItems: result.pagination.totalItems,
-      currentPage: result.pagination.currentPage,
-      userId: req.session?.userId,
-    });
-
-    return success(res, result, "Categories récupérés avec succès");
-  } catch (err: any) {
-    log.error("Erreur lors de la récupération des Categories", {
-      error: err.message,
-      query: req.query,
-      userId: req.session?.userId,
-    });
-
-    return error(res, {
-      status: HTTP_STATUS_CODES.InternalServerError,
-      message: "Erreur lors de la récupération des produits",
-      code: HTTP_STATUS_CODES.InternalServerError,
-      errors: { general: ["Erreur interne du serveur"] },
-    });
-  }
-};
-
 export const fetchCategories = async (req, res, next) => {
   try {
     log.info("Récupération des categories", {
@@ -60,13 +27,36 @@ export const fetchCategories = async (req, res, next) => {
       ip: req.ip,
     });
 
-    const result = await fetchCategoriesService();
+    // Si des paramètres de pagination sont présents, utiliser le service paginé
+    const hasPaginationParams = req.query.page || req.query.limit;
 
-    log.info("Catégories récupérés avec succès", {
-      userId: req.session?.userId,
-    });
+    let result;
 
-    return success(res, result, "Categories récupérés avec succès");
+    if (hasPaginationParams) {
+      // Mode paginé
+      result = await fetchCategoriesService(req.query);
+
+      log.info("Catégories récupérées avec pagination", {
+        totalItems: result.pagination.totalItems,
+        currentPage: result.pagination.currentPage,
+        userId: req.session?.userId,
+      });
+    } else {
+      // Mode toutes les catégories
+      const categoriesData = await fetchAllCategoriesService(req.query);
+
+      result = {
+        data: categoriesData.data,
+        // Pas d'objet pagination pour le mode "all"
+      };
+
+      log.info("Toutes les catégories récupérées", {
+        totalItems: categoriesData.count,
+        userId: req.session?.userId,
+      });
+    }
+
+    return success(res, result, "Categories récupérées avec succès");
   } catch (err: any) {
     log.error("Erreur lors de la récupération des Categories", {
       error: err.message,
@@ -76,13 +66,12 @@ export const fetchCategories = async (req, res, next) => {
 
     return error(res, {
       status: HTTP_STATUS_CODES.InternalServerError,
-      message: "Erreur lors de la récupération des produits",
+      message: "Erreur lors de la récupération des catégories",
       code: HTTP_STATUS_CODES.InternalServerError,
       errors: { general: ["Erreur interne du serveur"] },
     });
   }
 };
-
 // Récupération d'une catégorie par son ID
 
 export const fetchCategory = async (req, res, next) => {

@@ -12,7 +12,7 @@ import { statsService, userService } from "../../../lib/api";
 import { PaginationData } from "../../../type/pagination_type";
 import DataTable from "react-data-table-component";
 import StatsCard from "../../../components/stats_card";
-import { ToastProvider, useToast } from "../../../components/toast_provider";
+import { ToastProvider, useToast } from "../../context/toast_context";
 import SidebarLayout from "../../../components/sidebar_layout";
 import { usersColumns } from "../../../datatable_type/user_data_table";
 import { User } from "../../../type/user_type";
@@ -20,11 +20,9 @@ import DetailsUserModal from "../../../modal/user/details_user";
 
 export default function UsersPage() {
   return (
-    <ToastProvider>
-      <SidebarLayout>
-        <UsersPageContent />
-      </SidebarLayout>
-    </ToastProvider>
+    <SidebarLayout>
+      <UsersPageContent />
+    </SidebarLayout>
   );
 }
 

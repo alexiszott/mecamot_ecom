@@ -97,7 +97,7 @@ router.get("/", requireAuth, fetchCart);
  *       404:
  *         description: Produit non trouvé
  */
-router.post("/:productId/add-item", requireAuth, addItemToCart);
+router.post("/items", requireAuth, addItemToCart);
 
 /**
  * @swagger

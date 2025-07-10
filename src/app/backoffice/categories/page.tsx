@@ -5,7 +5,7 @@ import { useAuth } from "../../context/auth_context";
 import { categoriesService } from "../../../lib/api";
 import { PaginationData } from "../../../type/pagination_type";
 import DataTable from "react-data-table-component";
-import { ToastProvider, useToast } from "../../../components/toast_provider";
+import { ToastProvider, useToast } from "../../context/toast_context";
 import SidebarLayout from "../../../components/sidebar_layout";
 import DeleteConfirmationModal from "../../../modal/delete_confirmation";
 import { Category } from "../../../type/category_type";
@@ -15,11 +15,9 @@ import AddCategoryModal from "../../../modal/categories/add_category";
 
 export default function CategoriesPage() {
   return (
-    <ToastProvider>
-      <SidebarLayout>
-        <CategoriesPageContent />
-      </SidebarLayout>
-    </ToastProvider>
+    <SidebarLayout>
+      <CategoriesPageContent />
+    </SidebarLayout>
   );
 }
 
@@ -170,9 +168,9 @@ function CategoriesPageContent() {
         search: debouncedSearchTerm,
       };
 
-      const response = await categoriesService.fetchPaginatedCategories(params);
+      const response = await categoriesService.fetchCategories(params);
 
-      console.log("Response from fetchPaginatedCategories:", response);
+      console.log("Response from fetchCategories:", response);
 
       const categoriesEnrichis = response.data.data.map((category) => ({
         ...category,

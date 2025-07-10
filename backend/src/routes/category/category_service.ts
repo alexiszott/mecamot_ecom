@@ -7,7 +7,7 @@ import {
   prismaPaginate,
 } from "../../utils/pagination.js";
 
-export const fetchCategoriesPaginatedService = async (query: any) => {
+export const fetchCategoriesService = async (query: any) => {
   query = {
     ...query,
     isDeleted: false,
@@ -17,14 +17,12 @@ export const fetchCategoriesPaginatedService = async (query: any) => {
     query,
   });
 
-  // Extraire les paramètres de pagination
   const paginationOptions = extractPaginationParams(query);
 
   log.info("Pagination options", {
     paginationOptions,
   });
 
-  // Construire les filtres de recherche
   const searchFields = ["name", "description"];
   const where = buildSearchFilter(query, searchFields);
 
@@ -32,7 +30,6 @@ export const fetchCategoriesPaginatedService = async (query: any) => {
     where,
   });
 
-  // Options de tri
   let orderBy: any = { name: "desc" };
 
   if (query.sortBy) {
@@ -54,18 +51,6 @@ export const fetchCategoriesPaginatedService = async (query: any) => {
       name: true,
       description: true,
     },
-  });
-};
-
-export const fetchCategoriesService = async () => {
-  return await prisma.category.findMany({
-    where: { isDeleted: false },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-    },
-    orderBy: { name: "asc" },
   });
 };
 
@@ -113,4 +98,44 @@ export const archiveCategoryService = async (id: string) => {
     where: { id },
     data: { isDeleted: true },
   });
+};
+
+// Service pour récupérer toutes les catégories sans pagination
+export const fetchAllCategoriesService = async (query: any = {}) => {
+  log.info("Fetching all categories without pagination", {
+    query,
+  });
+
+  const searchFields = ["name", "description"];
+  const where = buildSearchFilter({ ...query, isDeleted: false }, searchFields);
+
+  let orderBy: any = { name: "asc" };
+
+  if (query.sortBy) {
+    const sortField = query.sortBy;
+    const sortOrder = query.sortOrder === "asc" ? "asc" : "desc";
+    orderBy = { [sortField]: sortOrder };
+  }
+
+  log.info("Fetching all categories with filters", {
+    where,
+    orderBy,
+  });
+
+  const categories = await prisma.category.findMany({
+    where,
+    orderBy,
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return {
+    data: categories,
+    count: categories.length,
+  };
 };

@@ -3,7 +3,12 @@ import { HTTP_STATUS_CODES } from "../../utils/http_status_code";
 import { log } from "../../utils/logger";
 import { fetchProduct } from "../product/product_controller";
 import { fetchProductService } from "../product/product_service";
-import { createCartService, fetchCartService } from "./cart_service";
+import {
+  addItemToCartService,
+  createCartService,
+  fetchCartService,
+  fetchExistingItemService,
+} from "./cart_service";
 
 export const fetchCart = async (req, res, next) => {
   try {
@@ -41,26 +46,80 @@ export const fetchCart = async (req, res, next) => {
 
 export const addItemToCart = async (req, res, next) => {
   try {
-    const { productId } = req.query;
-    const { qte } = req.params;
+    const { qte, productId } = req.body;
+    const userId = req.session?.userId;
+    const quantity = Number(qte);
+
+    if (!userId || !productId || !qte) {
+      return error(res, {
+        status: HTTP_STATUS_CODES.BadRequest,
+        message: "Missing required parameters",
+        code: HTTP_STATUS_CODES.BadRequest,
+        errors: { general: ["userId, productId and qte are required"] },
+      });
+    }
+
+    console.log("Adding item to cart", {
+      userId: req.session?.userId,
+      productId,
+      quantity: quantity,
+      ip: req.ip,
+    });
 
     const product = await fetchProductService(productId);
 
-    if (product && product?.stock - qte < 0) {
+    if (!product) {
+      log.warn("Product not found", { productId });
       return error(res, {
-        status: HTTP_STATUS_CODES.BadRequest,
-        message: "Insufficient stock",
-        code: HTTP_STATUS_CODES.BadRequest,
-        errors: { general: ["Insufficient stock for this product"] },
+        status: HTTP_STATUS_CODES.NotFound,
+        message: "Product not found",
+        code: HTTP_STATUS_CODES.NotFound,
+        errors: { general: ["Product not found"] },
       });
     }
 
     log.info("Adding item to cart", {
-      userId: req.session?.userId,
+      userId: userId,
       ip: req.ip,
     });
 
-    return success(res, "TODO");
+    const cart = await createCartService(userId);
+
+    const existingItem = await fetchExistingItemService(productId, cart.id);
+    const exist = !!existingItem;
+
+    const currentQuantity = existingItem?.quantity ?? 0;
+    const totalRequested = currentQuantity + Number(qte);
+
+    if (totalRequested > product.stock || product.stock <= 0) {
+      log.warn("Insufficient stock for product", {
+        productId: product.id,
+        requestedQuantity: quantity,
+        availableStock: product.stock,
+      });
+      return error(res, {
+        status: HTTP_STATUS_CODES.BadRequest,
+        message: "Insufficient stock for product",
+        code: HTTP_STATUS_CODES.BadRequest,
+        errors: { general: ["Insufficient stock for product"] },
+      });
+    }
+
+    const cartItem = await addItemToCartService(
+      product,
+      cart.id,
+      Number(qte),
+      exist
+    );
+
+    log.info("Item added to cart", {
+      userId,
+      productId: product.id,
+      quantity: qte,
+      cartId: cart.id,
+    });
+
+    return success(res, cartItem, "Item added to cart");
   } catch (err: any) {
     log.error("Error adding item to cart", {
       error: err.message,

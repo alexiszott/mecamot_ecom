@@ -26,6 +26,8 @@ export default function ProductListingPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProductCart, setLoadingProductCart] = useState(true);
+
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
   const { addItemToCart, fetchCart } = useCart();
@@ -130,10 +132,9 @@ export default function ProductListingPage() {
     });
   };
 
-  const handleAddToCart = (product: Product) => {
-    console.log("Add to cart:", product);
-    addItemToCart(product.id, 1);
-    fetchCart();
+  const handleAddToCart = async (product: Product) => {
+    await addItemToCart(product.id, 1);
+    await fetchCart();
   };
 
   const handleViewDetails = (product: Product) => {
@@ -404,5 +405,8 @@ export default function ProductListingPage() {
   );
 }
 function addItemToCart() {
+  throw new Error("Function not implemented.");
+}
+function showToast(arg0: { type: string; message: string }) {
   throw new Error("Function not implemented.");
 }

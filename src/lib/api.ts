@@ -79,25 +79,19 @@ export const statsService = {
     return response.data;
   },
 };
-
 export const categoriesService = {
-  fetchPaginatedCategories: async (params?: {
+  fetchCategories: async (params?: {
     page?: number;
     limit?: number;
     search?: string;
   }) => {
-    const response = await api.get("categories/paginated", {
+    const response = await api.get("categories/", {
       params: {
         page: params?.page || 1,
         limit: params?.limit || 10,
         search: params?.search || "",
       },
     });
-    return response.data;
-  },
-
-  fetchCategories: async () => {
-    const response = await api.get(`categories/`);
     return response.data;
   },
 
@@ -177,13 +171,14 @@ export const productService = {
 
 export const cartService = {
   fetchCartItems: async () => {
-    const response = await api.get(`carts/`);
+    const response = await api.get(`cart/`);
     return response.data;
   },
 
   addItemToCart: async (productId: string, quantity: number) => {
-    const response = await api.post(`carts/${productId}/add-item`, {
-      params: { qte: quantity },
+    const response = await api.post(`cart/items`, {
+      qte: quantity,
+      productId: productId,
     });
     return response.data;
   },

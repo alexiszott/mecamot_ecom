@@ -82,7 +82,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/stats", statsRoutes);
-app.use("/api/carts", cartsRoutes);
+app.use("/api/cart", cartsRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

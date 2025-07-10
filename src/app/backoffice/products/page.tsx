@@ -23,20 +23,17 @@ import DataTable from "react-data-table-component";
 import { productsColumns } from "../../../datatable_type/product_data_table";
 import StatsCard from "../../../components/stats_card";
 import { convertFormatPrice } from "../../utils/convert_money";
-import { ToastProvider, useToast } from "../../../components/toast_provider";
+import { useToast } from "../../context/toast_context";
 import SidebarLayout from "../../../components/sidebar_layout";
 import DeleteConfirmationModal from "../../../modal/delete_confirmation";
 import EditProductModal from "../../../modal/products/edit_product";
 import { Category } from "../../../type/category_type";
-import { set } from "react-hook-form";
 
 export default function ProductsPage() {
   return (
-    <ToastProvider>
-      <SidebarLayout>
-        <ProductsPageContent />
-      </SidebarLayout>
-    </ToastProvider>
+    <SidebarLayout>
+      <ProductsPageContent />
+    </SidebarLayout>
   );
 }
 
@@ -53,7 +50,7 @@ function ProductsPageContent() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
   const [loadingProducts, setLoadingProducts] = useState(true);
-
+  const [loadingCategories, setLoadingCategories] = useState(true);
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -237,16 +234,22 @@ function ProductsPageContent() {
 
   const fetchCategories = async () => {
     try {
+      setLoadingCategories(true);
+
       const response = await categoriesService.fetchCategories();
-      if (response.success && Array.isArray(response.data)) {
-        setCategories(response.data);
+
+      console.log("Response from fetchCategories:", response);
+
+      if (response.success) {
+        setCategories(response.data.data || []);
       } else {
-        console.error("Categories mal formatées :", response.data);
-        setCategories([]);
+        showToast("Erreur lors de la récupération des categories", "error");
       }
     } catch (error) {
       console.error("Erreur lors de la récupération des categories:", error);
       showToast("Erreur lors de la récupération des categories", "error");
+    } finally {
+      setLoadingCategories(false);
     }
   };
 

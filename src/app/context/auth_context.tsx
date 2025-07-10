@@ -3,6 +3,7 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { authService } from "../../lib/api";
 import { User } from "../../type/user_type";
+import { useToast } from "../context/toast_context";
 
 type AuthContextType = {
   isLoggedIn: boolean;
@@ -32,6 +33,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
 
   const checkAuth = async () => {
     try {
@@ -73,7 +75,6 @@ export const AuthProvider = ({ children }) => {
         setIsLoggedIn(true);
         return response;
       }
-      console.error("Erreur de connexion:", response);
       throw new Error("Réponse de connexion invalide");
     } catch (error) {
       setUser(null);
@@ -86,7 +87,6 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     setLoading(true);
-
     try {
       await authService.logout();
       setUser(null);

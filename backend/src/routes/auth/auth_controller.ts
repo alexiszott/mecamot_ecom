@@ -293,13 +293,19 @@ export const logout = async (req, res, next) => {
       sessionId: req.sessionID,
     });
 
-    req.session.destroy((err) => {
-      if (err) return next(err);
-      res.clearCookie("connect.sid");
-      return success(res, null, "Déconnexion réussie");
-    });
+    if (userId) {
+      await updateLastActivityService(userId);
+    }
 
-    await updateLastActivityService(userId);
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Erreur lors de la suppression de session", err);
+        return res.status(500).json({ error: "Erreur lors de la déconnexion" });
+      }
+
+      res.clearCookie("connect.sid");
+      return res.status(200).json({ message: "Déconnecté avec succès" });
+    });
 
     log.auth("Déconnexion réussie", { userId, ip: req.ip });
   } catch (error) {

@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useState, ReactNode } from "react";
-import Toast from "./toast";
+import Toast from "../../components/toast";
 
 interface ToastContextType {
   showToast: (
@@ -44,7 +44,6 @@ export const ToastProvider = ({ children }: ToastProviderProps) => {
 
     setToasts((prev) => [...prev, newToast]);
 
-    // Auto-remove after duration
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
     }, duration);
@@ -57,7 +56,6 @@ export const ToastProvider = ({ children }: ToastProviderProps) => {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {/* Render all toasts */}
       <div className="fixed bottom-4 left-4 z-50 space-y-2">
         {toasts.map((toast, index) => (
           <div

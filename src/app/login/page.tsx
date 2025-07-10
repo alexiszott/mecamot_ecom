@@ -42,7 +42,7 @@ export default function LoginPage() {
     try {
       await login(formData.email, formData.password, formData.rememberMe);
 
-      router.push("/home");
+      router.push("/frontoffice/showProduct");
     } catch (err: any) {
       const apiError = err.response?.data;
       setError(apiError?.message || "Erreur de connexion avec le serveur");
