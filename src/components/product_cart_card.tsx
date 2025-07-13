@@ -45,6 +45,7 @@ export default function ProductCartCard({
 
         {/* Product Info */}
         <div className="flex-1">
+          x
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900 text-lg mb-1">
