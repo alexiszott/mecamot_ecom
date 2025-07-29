@@ -13,6 +13,8 @@ export const fetchProductsService = async (query: any) => {
   query = {
     ...query,
     isDeleted: false,
+    isPublished: true,
+    //A MODIFIE
   };
 
   log.info("Fetching products with query", {
@@ -66,6 +68,15 @@ export const fetchProductService = async (id: string) => {
   });
 };
 
+export const fetchAvailableStockService = async (id: string, manager) => {
+  return await manager.product.findUnique({
+    where: { id },
+    select: {
+      stock: true,
+    },
+  });
+};
+
 export const createProductService = async (data: any) => {
   return await prisma.product.create({
     data: {
@@ -110,6 +121,26 @@ export const updateProductService = async (id: string, data: any) => {
       category: true,
     },
   });
+};
+
+export const updateStockProductService = async (item: any, prismaManager) => {
+  const updated = await prismaManager.product.update({
+    where: {
+      id: item.productId,
+      stock: {
+        gte: item.quantity,
+      },
+    },
+    data: {
+      stock: {
+        decrement: item.quantity,
+      },
+    },
+  });
+
+  if (updated.count === 0) {
+    throw new Error(`Stock insuffisant pour le produit ${item.productId}`);
+  }
 };
 
 export const archiveProductsService = async (ids: string[]) => {

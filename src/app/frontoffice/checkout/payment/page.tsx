@@ -1,23 +1,55 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import CheckoutBreadcrumb from "../../../../components/checkout_breadcrum";
+import { useState } from "react";
+import { loadStripe } from "@stripe/stripe-js";
+import { orderService, paymentService } from "../../../../lib/api";
+import { useCart } from "../../../context/cart_context";
 import { useCheckout } from "../../../context/checkout_context";
-import { useEffect } from "react";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!);
 
 export default function PaymentPage() {
+  const [loading, setLoading] = useState(false);
   const { shippingAddress } = useCheckout();
-  const router = useRouter();
+  const { items } = useCart();
 
-  useEffect(() => {
-    if (!shippingAddress) {
-      router.replace("/checkout/shipping");
+  const handleCheckout = async () => {
+    setLoading(true);
+    try {
+      if (shippingAddress === null) {
+        throw new Error("Adresse de livraison non définie");
+      }
+
+      await orderService.createOrder(shippingAddress, items);
+
+      const res = await paymentService.payment(items, shippingAddress);
+
+      const sessionId = res.sessionId;
+
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error("Stripe non chargé");
+
+      const { error } = await stripe.redirectToCheckout({ sessionId });
+
+      if (error) {
+        alert(error.message);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-  }, [shippingAddress]);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 mt-6">
-      <CheckoutBreadcrumb currentStep={3} />
+    <div className="max-w-xl mx-auto p-6">
+      <button
+        onClick={handleCheckout}
+        disabled={loading}
+        className="px-4 py-2 bg-blue-600 text-white rounded"
+      >
+        {loading ? "Chargement..." : "Payer maintenant"}
+      </button>
     </div>
   );
 }

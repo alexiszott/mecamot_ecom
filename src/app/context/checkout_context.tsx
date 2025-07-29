@@ -17,7 +17,12 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     useState<ShippingAddress | null>(null);
 
   return (
-    <CheckoutContext.Provider value={{ shippingAddress, setShippingAddress }}>
+    <CheckoutContext.Provider
+      value={{
+        shippingAddress,
+        setShippingAddress,
+      }}
+    >
       {children}
     </CheckoutContext.Provider>
   );

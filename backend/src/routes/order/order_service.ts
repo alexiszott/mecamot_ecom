@@ -57,12 +57,27 @@ export const fetchOrderService = async (id: string) => {
   });
 };
 
-export const createOrderService = async (data: any) => {
-  return await prisma.order.create({
-    data,
-    include: {
-      user: true,
-      orderItems: true,
+export const createOrderService = async (
+  userId: string,
+  data: any,
+  prismaManager
+) => {
+  return await prismaManager.order.create({
+    data: {
+      userId: userId,
+      subtotal: data.subTotal,
+      shippingPrice: data.shippingPrice,
+      totalPrice: data.totalPrice,
+      taxPrice: data.taxPrice,
+      shippingAddress: data.shippingAddress,
+      shippingCity: data.shippingCity,
+      shippingPostalCode: data.shippingPostalCode,
+      shippingCountry: data.shippingCountry,
+      shippingPhone: data.shippingPhone,
+      recipientName: data.recipientName,
+    },
+    select: {
+      id: true,
     },
   });
 };
@@ -82,5 +97,75 @@ export const archiveOrderService = async (id: string) => {
   return await prisma.order.update({
     where: { id },
     data: { isDeleted: true },
+  });
+};
+
+export const validateStockBatchService = async (
+  items: any[],
+  prismaManager
+) => {
+  const productIds = items.map((item) => item.productId);
+
+  const stockInfo = await prismaManager.product.findMany({
+    where: { id: { in: productIds } },
+    select: { id: true, stock: true },
+  });
+
+  const reservations = await prismaManager.stockReservation.groupBy({
+    by: ["productId"],
+    where: { productId: { in: productIds }, status: "ACTIVE" },
+    _sum: { quantity: true },
+  });
+};
+
+export const addReservationProductService = async (
+  product: any,
+  userId: string,
+  prismaManager
+) => {
+  await prismaManager.stockReservation.create({
+    data: {
+      userId: userId,
+      productId: product.id,
+      quantity: product.quantity,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+      status: "ACTIVE",
+    },
+  });
+};
+
+export const linkReservationsToOrderService = async (
+  orderId: string,
+  userId: string,
+  prismaManager
+) => {
+  await prismaManager.stockReservation.updateMany({
+    where: {
+      userId,
+      status: "ACTIVE",
+      orderId: null,
+    },
+    data: {
+      orderId: orderId,
+      status: "CONFIRMED",
+    },
+  });
+};
+
+export const createOrderItemsService = async (
+  orderId: string,
+  userId: string,
+  product: any,
+  prismaManager
+) => {
+  await prismaManager.orderItems.create({
+    data: {
+      orderId: orderId,
+      userId: userId,
+      productId: product.id,
+      quantity: product.quantity,
+      price: product.price,
+      totalWeight: product.weight,
+    },
   });
 };

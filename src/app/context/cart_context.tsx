@@ -39,7 +39,6 @@ export const CartProvider = ({ children }) => {
       };
 
       setCart(cart);
-      console.log("Cart fetched successfully:", cart);
     } catch (error: any) {
       if (error.response?.status === 401) {
       }

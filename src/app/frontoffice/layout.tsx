@@ -48,8 +48,8 @@ export default function FrontofficeLayout({
                 Accueil
               </Link>
               <Link
-                href="/frontoffice/ProductList"
-                className={linkClass("/frontoffice/ProductList")}
+                href="/frontoffice/product-display"
+                className={linkClass("/frontoffice/product-display")}
               >
                 Produits
               </Link>
@@ -86,10 +86,16 @@ export default function FrontofficeLayout({
                 <>
                   {!isLoggedIn ? (
                     <div>
-                      <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                      <button
+                        onClick={() => router.push("/login")}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                      >
                         Connexion
                       </button>
-                      <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                      <button
+                        onClick={() => router.push("/register")}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                      >
                         Inscription
                       </button>
                     </div>

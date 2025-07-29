@@ -6,6 +6,7 @@ import { cartService } from "../../../lib/api";
 import ProductCard from "../../../components/product_card";
 import { useCart } from "../../context/cart_context";
 import ProductCartCard from "../../../components/product_cart_card";
+import { useRouter } from "next/navigation";
 
 interface FilterState {
   search: string;
@@ -21,6 +22,7 @@ interface FilterState {
 export default function Cart() {
   const [loading, setLoading] = useState<boolean>(false);
   const { items } = useCart();
+  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -41,6 +43,12 @@ export default function Cart() {
             )}
             {" €"}
           </h1>
+          <button
+            onClick={() => router.push("/frontoffice/checkout/shipping")}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Passer à la caisse
+          </button>
           <div className="space-y-4">
             {items.map(
               (item) => (

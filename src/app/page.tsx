@@ -41,7 +41,7 @@ export default function Landing() {
         </div>
         <div className="space-y-4">
           <Link
-            href="/frontoffice/ProductList"
+            href="/frontoffice/product-display"
             className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
           >
             Aller a la page d'accueil

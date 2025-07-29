@@ -1,4 +1,6 @@
 import axios from "axios";
+import { CartItem } from "../type/cart_item";
+import { ShippingAddress } from "../type/shipping_address";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -79,6 +81,7 @@ export const statsService = {
     return response.data;
   },
 };
+
 export const categoriesService = {
   fetchCategories: async (params?: {
     page?: number;
@@ -212,6 +215,24 @@ export const userService = {
 
   archiveUser: async (id: string) => {
     const response = await api.put(`users/${id}/archive`);
+    return response.data;
+  },
+};
+
+export const orderService = {
+  createOrder: async (shippingAddress: ShippingAddress, items: CartItem[]) => {
+    const response = await api.post("orders/", { shippingAddress, items });
+    return response.data;
+  },
+};
+
+export const paymentService = {
+  payment: async (items: CartItem[], shippingAddress: ShippingAddress) => {
+    console.log("Payment items:", items);
+    const response = await api.post("payment/create-checkout-session", {
+      items,
+      shippingAddress,
+    });
     return response.data;
   },
 };

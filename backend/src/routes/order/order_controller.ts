@@ -4,36 +4,25 @@ import {
   fetchOrderService,
   createOrderService,
   updateOrderService,
-  archiveOrderService,
+  linkReservationsToOrderService,
+  createOrderItemsService,
+  validateStockBatchService,
 } from "./order_service.js";
 import { success, error } from "../../utils/apiReponse.js";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
 import { log } from "../../utils/logger.js";
+import {
+  fetchAvailableStockService,
+  updateStockProductService,
+} from "../product/product_service.js";
+import { prisma } from "../../prismaClient.js";
 
 export const fetchOrders = async (req, res, next) => {
   try {
-    log.info("Récupération des commandes", {
-      query: req.query,
-      userId: req.session?.userId,
-      ip: req.ip,
-    });
-
     const result = await fetchOrdersService(req.query);
-
-    log.info("Commandes récupérés avec succès", {
-      totalItems: result.pagination.totalItems,
-      currentPage: result.pagination.currentPage,
-      userId: req.session?.userId,
-    });
 
     return success(res, result, "Commandes récupérés avec succès");
   } catch (err: any) {
-    log.error("Erreur lors de la récupération des commandes", {
-      error: err.message,
-      query: req.query,
-      userId: req.session?.userId,
-    });
-
     return error(res, {
       status: HTTP_STATUS_CODES.InternalServerError,
       message: "Erreur lors de la récupération des commandes",
@@ -46,13 +35,6 @@ export const fetchOrders = async (req, res, next) => {
 export const fetchOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    log.info("Récupération d'une commande", {
-      orderId: id,
-      userId: req.session?.userId,
-      ip: req.ip,
-    });
-
     const order = await fetchOrderService(id);
 
     if (!order) {
@@ -66,77 +48,9 @@ export const fetchOrder = async (req, res, next) => {
 
     return success(res, { order }, "Commande récupéré avec succès");
   } catch (err: any) {
-    log.error("Erreur lors de la récupération de la commande", {
-      error: err.message,
-      productId: req.params.id,
-      userId: req.session?.userId,
-    });
-
     return error(res, {
       status: HTTP_STATUS_CODES.InternalServerError,
       message: "Erreur lors de la récupération de la commande",
-      code: HTTP_STATUS_CODES.InternalServerError,
-      errors: { general: ["Erreur interne du serveur"] },
-    });
-  }
-};
-
-export const createOrder = async (req, res, next) => {
-  try {
-    log.userAction("create_an_order", req.user?.id, {
-      orderData: req.body,
-      ip: req.ip,
-    });
-
-    /* 
-    // 1. Vérifier le stock disponible (stock - réservations actives)
-    const availableStock = await getAvailableStock(productId);
-    if (availableStock < quantity) {
-      throw new Error(`Stock insuffisant pour ${productName}`);
-    }
-
-    // 2. Créer la réservation (statut ACTIVE)
-    const reservation = await createReservation({
-      userId, productId, quantity,
-      status: 'ACTIVE',
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
-    });
-
-    // 3. Créer la commande (statut PROCESSING)
-    const order = await createOrder({
-      status: 'PROCESSING',
-      paymentStatus: 'PENDING'
-    });
-
-    // 4. Lier réservation à commande
-    await linkReservationToOrder(reservation.id, order.id);
-
-    // 5. Si paiement réussi :
-    await updateOrder(order.id, { 
-      status: 'CONFIRMED', 
-      paymentStatus: 'COMPLETED' 
-    });
-    await updateReservation(reservation.id, { status: 'CONFIRMED' });
-    await decreaseStock(productId, quantity);
-
-    // 6. Si paiement échoue :
-    await updateOrder(order.id, { 
-      status: 'FAILED', 
-      paymentStatus: 'FAILED' 
-    });
-    await updateReservation(reservation.id, { status: 'EXPIRED' });
-    */
-    
-  } catch (err: any) {
-    log.error("Erreur lors de la création de la commande", {
-      error: err.message,
-      productData: req.body,
-      adminId: req.user?.id,
-    });
-
-    return error(res, {
-      status: HTTP_STATUS_CODES.InternalServerError,
-      message: "Erreur lors de la création de la commande",
       code: HTTP_STATUS_CODES.InternalServerError,
       errors: { general: ["Erreur interne du serveur"] },
     });
@@ -147,23 +61,11 @@ export const updateOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    log.userAction("update_order", req.user?.id, {
-      productId: id,
-      updateData: req.body,
-      ip: req.ip,
-    });
-
     const order = await updateOrderService(id, req.body);
 
     return success(res, { order }, "Commande mise à jour avec succès");
   } catch (err: any) {
-    log.error("Erreur lors de la mise à jour de la commande", {
-      error: err.message,
-      productId: req.params.id,
-      adminId: req.user?.id,
-    });
-
-    return error(res, {
+    error(res, {
       status: HTTP_STATUS_CODES.InternalServerError,
       message: "Erreur lors de la mise à jour de la commande",
       code: HTTP_STATUS_CODES.InternalServerError,
@@ -172,37 +74,287 @@ export const updateOrder = async (req, res, next) => {
   }
 };
 
-// Function to archive 1 product
-
-export const archiveOrder = async (req, res, next) => {
+export const createOrder = async (req, res, next) => {
+  console.log("Creating order...");
   try {
-    const { id } = req.params;
+    const { userId } = req.session;
+    const {
+      shippingAddress,
+      shippingCity,
+      shippingPostalCode,
+      shippingCountry,
+      shippingPhone,
+      recipientName,
+      cartItems,
+      deliveryMethod,
+      notes,
+    } = req.body;
 
-    log.userAction("delete_order", req.user?.id, {
-      orderId: id,
-      ip: req.ip,
+    console.log("Creating order with data:", {
+      userId,
+      shippingAddress,
+      shippingCity,
+      shippingPostalCode,
+      shippingCountry,
+      shippingPhone,
+      recipientName,
+      cartItems,
+      deliveryMethod,
+      notes,
     });
 
-    await archiveOrderService(id);
+    let orderId = null;
+    let orderResult = null;
 
-    log.info("Commande supprimé avec succès", {
-      productId: id,
-      adminId: req.user?.id,
+    await prisma.$transaction(async (manager) => {
+      // 1. Récupérer les produits avec leurs prix actuels et vérifier existence
+      console.log("Fetching and validating products...");
+      const validatedProducts = await fetchAndValidateProducts(
+        cartItems,
+        manager
+      );
+
+      console.log("Validated products:", validatedProducts);
+      // 2. Vérifier et réserver le stock
+      await validateAndReserveStock(validatedProducts, userId, manager);
+
+      console.log("Stock reserved successfully");
+      // 3. Calculer les prix avec les données fraîches de la base
+      const pricing = await calculatePricing(validatedProducts, deliveryMethod);
+
+      // 4. Traitement du paiement (à implémenter)
+      // const paymentResult = await processPayment(pricing);
+      // if (!paymentResult.success) throw new Error("Paiement échoué");
+
+      console.log("Pricing calculated:", pricing);
+      // 5. Créer la commande avec toutes les données
+      const orderData = {
+        subTotal: pricing.subtotal,
+        shippingPrice: pricing.shippingPrice,
+        totalPrice: pricing.totalPrice,
+        taxPrice: pricing.taxPrice,
+        shippingAddress,
+        shippingCity,
+        shippingPostalCode,
+        shippingCountry,
+        shippingPhone,
+        recipientName,
+        deliveryMethod,
+        notes,
+        totalWeight: pricing.totalWeight,
+      };
+
+      orderResult = await createOrderService(userId, orderData, manager);
+
+      if (!orderResult || !(orderResult as any).id) {
+        throw new Error("Erreur lors de la création de la commande");
+      }
+
+      orderId = (orderResult as any).id;
+
+      console.log("Order created with ID:", orderId);
+      // 6. Lier les réservations à la commande
+      await linkReservationsToOrderService(orderId!, userId, manager);
+
+      console.log("Reservations linked to order successfully");
+      // 7. Créer les OrderItems avec les vrais prix
+      await createOrderItems(validatedProducts, orderId!, userId, manager);
+
+      console.log("Order items created successfully");
+      // 8. Mettre à jour le stock
+      await updateProductStock(validatedProducts, manager);
     });
 
-    return success(res, null, "Commande supprimé avec succès");
+    return success(res, { order: orderResult }, "Commande créée avec succès");
   } catch (err: any) {
-    log.error("Erreur lors de la suppression de la commande", {
+    log.error("Erreur lors de la création de la commande", {
       error: err.message,
-      productId: req.params.id,
-      adminId: req.user?.id,
+      userId: req.session?.userId,
+      cartItems: req.body.cartItems,
     });
 
     return error(res, {
       status: HTTP_STATUS_CODES.InternalServerError,
-      message: "Erreur lors de la suppression de la commande",
+      message: err.message || "Erreur lors de la création de la commande",
       code: HTTP_STATUS_CODES.InternalServerError,
-      errors: { general: ["Erreur interne du serveur"] },
+      errors: { general: [err.message || "Erreur interne du serveur"] },
     });
+  }
+};
+
+export const fetchAndValidateProducts = async (
+  cartItems: any[],
+  prismaManager
+) => {
+  try {
+    const productIds = cartItems.map((item) => item.productId);
+
+    const products = await prismaManager.product.findMany({
+      where: {
+        id: { in: productIds },
+        isDeleted: false,
+        isPublished: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        stock: true,
+        weight: true,
+      },
+    });
+
+    console.log("\n\n\n\nFetched products:", products);
+
+    if (products.length !== productIds.length) {
+      const foundIds = products.map((p) => p.id);
+      const missingIds = productIds.filter((id) => !foundIds.includes(id));
+      throw new Error(`Produits introuvables : ${missingIds.join(", ")}`);
+    }
+
+    const validatedProducts = cartItems.map((cartItem) => {
+      const product = products.find((p) => p.id === cartItem.productId);
+      if (!product) {
+        throw new Error(`Produit ${cartItem.productId} introuvable`);
+      }
+
+      return {
+        productId: product.id,
+        name: product.name,
+        price: Number(product.price),
+        stock: product.stock,
+        weight: product.weight || 0,
+        quantity: cartItem.quantity,
+      };
+    });
+
+    return validatedProducts;
+  } catch (err: any) {
+    throw new Error(
+      `Erreur lors de la validation des produits : ${err.message}`
+    );
+  }
+};
+
+const calculatePricing = async (
+  validatedProducts: any[],
+  deliveryMethod?: string
+) => {
+  try {
+    let subtotal = 0;
+    let totalWeight = 0;
+    let shippingPrice = 5; // Valeur par défaut
+
+    for (const product of validatedProducts) {
+      subtotal += product.price * product.quantity;
+      totalWeight += (product.weight || 0) * product.quantity;
+    }
+
+    const taxPrice = subtotal * 0.2;
+
+    // Calculer les frais de port selon le poids et la méthode
+    //if (deliveryMethod === "EXPRESS") {
+    //  shippingPrice = totalWeight > 5 ? 15 : 10;
+    //} else if (deliveryMethod === "PICKUP") {
+    //  shippingPrice = 0;
+    //} else {
+    //  shippingPrice = totalWeight > 5 ? 8 : 5;
+    //}
+
+    const totalPrice = subtotal + taxPrice + shippingPrice;
+
+    return {
+      subtotal,
+      taxPrice,
+      shippingPrice,
+      totalPrice,
+      totalWeight,
+    };
+  } catch (err: any) {
+    throw new Error(`Erreur lors du calcul des prix : ${err.message}`);
+  }
+};
+
+const validateAndReserveStock = async (
+  validatedProducts: any[],
+  userId: string,
+  prismaManager
+) => {
+  try {
+    // Vérifier le stock disponible pour chaque produit
+    for (const product of validatedProducts) {
+      // Récupérer les réservations actives pour ce produit
+      const lockedStock = await prismaManager.stockReservation.aggregate({
+        where: {
+          productId: product.productId,
+          status: "ACTIVE",
+          expiresAt: { gte: new Date() },
+        },
+        _sum: { quantity: true },
+      });
+
+      const reservedQuantity = lockedStock._sum.quantity || 0;
+      const availableStock = product.stock - reservedQuantity;
+
+      if (product.quantity > availableStock) {
+        throw new Error(
+          `Stock insuffisant pour ${product.name}. Disponible: ${availableStock}, demandé: ${product.quantity}`
+        );
+      }
+
+      // Créer la réservation
+      await prismaManager.stockReservation.create({
+        data: {
+          userId,
+          productId: product.productId,
+          quantity: product.quantity,
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+          status: "ACTIVE",
+        },
+      });
+    }
+  } catch (err: any) {
+    throw new Error(`Erreur lors de la réservation du stock : ${err.message}`);
+  }
+};
+
+const createOrderItems = async (
+  validatedProducts: any[],
+  orderId: string,
+  userId: string,
+  prismaManager
+) => {
+  try {
+    for (const product of validatedProducts) {
+      await createOrderItemsService(
+        orderId,
+        userId,
+        {
+          id: product.productId,
+          quantity: product.quantity,
+          price: product.price,
+          weight: product.weight,
+        },
+        prismaManager
+      );
+    }
+  } catch (err: any) {
+    throw new Error(`Erreur lors de la création des items : ${err.message}`);
+  }
+};
+
+const updateProductStock = async (validatedProducts: any[], prismaManager) => {
+  try {
+    for (const product of validatedProducts) {
+      await updateStockProductService(
+        {
+          productId: product.productId,
+          quantity: product.quantity,
+        },
+        prismaManager
+      );
+    }
+  } catch (err: any) {
+    throw new Error(`Erreur lors de la mise à jour du stock : ${err.message}`);
   }
 };

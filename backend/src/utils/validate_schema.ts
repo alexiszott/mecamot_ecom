@@ -223,6 +223,105 @@ export const updateUserSchema = z.object({
   phone: z.string().optional(),
 });
 
+// Schema pour valider les données de commande côté client - VERSION AMÉLIORÉE
+export const orderBodySchema = z.object({
+  userId: z.string().cuid("ID utilisateur invalide").optional(),
+
+  shippingAddress: z
+    .string()
+    .min(5, {
+      message: "L'adresse de livraison doit contenir au moins 5 caractères.",
+    })
+    .max(200, {
+      message: "L'adresse de livraison ne peut pas dépasser 200 caractères.",
+    })
+    .trim(),
+
+  shippingCity: z
+    .string()
+    .min(2, {
+      message: "La ville de livraison doit contenir au moins 2 caractères.",
+    })
+    .max(100, {
+      message: "La ville de livraison ne peut pas dépasser 100 caractères.",
+    })
+    .trim(),
+
+  shippingPostalCode: z
+    .string()
+    .min(3, {
+      message: "Le code postal doit contenir au moins 3 caractères.",
+    })
+    .max(20, {
+      message: "Le code postal ne peut pas dépasser 20 caractères.",
+    })
+    .regex(/^[A-Z0-9\s\-]+$/i, {
+      message: "Le code postal contient des caractères invalides.",
+    })
+    .trim(),
+
+  shippingCountry: z
+    .string()
+    .min(2, {
+      message: "Le pays de livraison doit contenir au moins 2 caractères.",
+    })
+    .max(100, {
+      message: "Le pays de livraison ne peut pas dépasser 100 caractères.",
+    })
+    .trim(),
+
+  shippingPhone: z
+    .string()
+    .min(8, {
+      message: "Le numéro de téléphone doit contenir au moins 8 caractères.",
+    })
+    .max(20, {
+      message: "Le numéro de téléphone ne peut pas dépasser 20 caractères.",
+    })
+    .regex(/^[\+]?[0-9\s\-\(\)\.]+$/, {
+      message: "Le numéro de téléphone contient des caractères invalides.",
+    })
+    .trim(),
+
+  recipientName: z
+    .string()
+    .min(2, {
+      message: "Le nom du destinataire doit contenir au moins 2 caractères.",
+    })
+    .max(100, {
+      message: "Le nom du destinataire ne peut pas dépasser 100 caractères.",
+    })
+    .trim(),
+
+  cartItems: z
+    .array(
+      z.object({
+        productId: z.string().cuid("ID de produit invalide"),
+        quantity: z
+          .number()
+          .int("La quantité doit être un nombre entier.")
+          .min(1, { message: "La quantité doit être au moins 1." })
+          .max(9999, { message: "La quantité ne peut pas dépasser 9999." }),
+      })
+    )
+    .min(1, { message: "Au moins un produit est requis." })
+    .max(50, { message: "Maximum 50 produits par commande." }),
+
+  deliveryMethod: z
+    .enum(["STANDARD", "EXPRESS", "PICKUP"], {
+      message: "Méthode de livraison invalide.",
+    })
+    .optional(),
+
+  notes: z
+    .string()
+    .max(500, {
+      message: "Les notes ne peuvent pas dépasser 500 caractères.",
+    })
+    .trim()
+    .optional(),
+});
+
 export const productQuerySchema = paginationSchema
   .merge(sortSchema)
   .merge(searchSchema)
@@ -385,3 +484,75 @@ export const orderQuerySchema = paginationSchema
     })
   )
   .merge(dateFiltersSchema);
+
+export const orderInternalSchema = z.object({
+  userId: z.string().cuid("ID utilisateur invalide"),
+  subtotal: z.number().min(0, "Le sous-total doit être positif"),
+  shippingPrice: z.number().min(0, "Le prix de livraison doit être positif"),
+  totalPrice: z.number().min(0, "Le prix total doit être positif"),
+  taxPrice: z.number().min(0, "Le prix des taxes doit être positif"),
+  totalWeight: z.number().min(0, "Le poids total doit être positif").optional(),
+
+  shippingAddress: z.string().min(5).max(200),
+  shippingCity: z.string().min(2).max(100),
+  shippingPostalCode: z.string().min(3).max(20),
+  shippingCountry: z.string().min(2).max(100),
+  shippingPhone: z.string().min(8).max(20),
+  recipientName: z.string().min(2).max(100),
+
+  deliveryMethod: z.enum(["STANDARD", "EXPRESS", "PICKUP"]).optional(),
+  paymentMethod: z.string().optional(),
+  paymentStatus: z.enum(["PENDING", "COMPLETED", "FAILED"]).default("PENDING"),
+  status: z
+    .enum([
+      "PENDING",
+      "PROCESSING",
+      "PREPARING",
+      "SHIPPED",
+      "DELIVERED",
+      "CANCELLED",
+      "FAILED",
+      "COMPLETED",
+    ])
+    .default("PENDING"),
+
+  notes: z.string().max(500).optional(),
+
+  orderItems: z
+    .array(
+      z.object({
+        productId: z.string().cuid(),
+        quantity: z.number().int().min(1).max(9999),
+        price: z.number().min(0),
+        totalWeight: z.number().min(0).optional(),
+      })
+    )
+    .min(1),
+});
+
+export const cartItemValidationSchema = z.object({
+  productId: z.string().cuid("ID de produit invalide"),
+  quantity: z.number().int().min(1).max(9999),
+});
+
+export const orderUpdateSchema = z.object({
+  status: z
+    .enum([
+      "PENDING",
+      "PROCESSING",
+      "PREPARING",
+      "SHIPPED",
+      "DELIVERED",
+      "CANCELLED",
+      "FAILED",
+      "COMPLETED",
+    ])
+    .optional(),
+  paymentStatus: z.enum(["PENDING", "COMPLETED", "FAILED"]).optional(),
+  trackingNumber: z.string().max(100).optional(),
+  trackingUrl: z.string().url().optional(),
+  notes: z.string().max(500).optional(),
+  deliveryMethod: z.enum(["STANDARD", "EXPRESS", "PICKUP"]).optional(),
+  shippedAt: z.date().optional(),
+  deliveredAt: z.date().optional(),
+});

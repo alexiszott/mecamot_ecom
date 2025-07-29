@@ -143,6 +143,10 @@ export function buildSearchFilter(query: any, searchFields: string[] = []) {
     where.isDeleted = query.isDeleted;
   }
 
+  if (query.isPublished !== undefined) {
+    where.isPublished = query.isPublished;
+  }
+
   // Recherche générale
   if (query.search && searchFields.length > 0) {
     where.OR = searchFields.map((field) => ({

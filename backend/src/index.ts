@@ -7,6 +7,8 @@ import productRoutes from "./routes/product/product_routes.js";
 import statsRoutes from "./routes/stats/stats_routes.js";
 import categoryRoutes from "./routes/category/category_routes.js";
 import cartsRoutes from "./routes/cart/cart_routes.js";
+import paymentRoutes from "./routes/payment/payment_routes.js";
+import ordersRoutes from "./routes/order/order_routes.js";
 
 import { PrismaClient } from "@prisma/client";
 import { errorHandler } from "./middleware/error_handler_middleware";
@@ -83,6 +85,8 @@ app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/cart", cartsRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/orders", ordersRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
