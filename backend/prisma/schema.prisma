@@ -137,8 +137,10 @@ enum Status {
 
 enum PaymentStatus  {
   PENDING
-  COMPLETED
+  PAID
   FAILED
+  CANCELLED
+  REFUNDED
 }
 
 model Order {
@@ -149,6 +151,7 @@ model Order {
   paymentStatus         PaymentStatus  @default(PENDING)
   paymentIntentId       String?
   paymentMethodId       String?
+  stripeSessionId       String?
   paidAt                DateTime?
   notes                 String?
 

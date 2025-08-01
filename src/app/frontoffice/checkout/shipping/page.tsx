@@ -2,9 +2,14 @@
 
 import { useState } from "react";
 import CheckoutBreadcrumb from "../../../../components/checkout_breadcrum";
+import { loadStripe } from "@stripe/stripe-js";
 import { useRouter } from "next/navigation";
 import { useCheckout } from "../../../context/checkout_context";
 import { useToast } from "../../../context/toast_context";
+import { useCart } from "../../../context/cart_context";
+import { orderService, paymentService } from "../../../../lib/api";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!);
 
 export default function ShippingPage() {
   const [firstname, setFirstname] = useState("");
@@ -30,13 +35,74 @@ export default function ShippingPage() {
 
   const [useSameAddress, setUseSameAddress] = useState(true);
 
-  const { setShippingAddress } = useCheckout();
+  const { shippingAddress, setShippingAddress } = useCheckout();
+  const { items } = useCart();
   const router = useRouter();
   const { showToast } = useToast();
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    setLoading(true);
     e.preventDefault();
+    try {
+      checkAddress();
 
+      if (shippingAddress === null) {
+        throw new Error("Adresse de livraison non définie");
+      }
+
+      const resOrder = await orderService.createOrder(shippingAddress, items);
+
+      console.log("Order created successfully:", resOrder);
+
+      if (!resOrder) {
+        throw new Error("Erreur lors de la création de la commande");
+      }
+
+      const resPayment = await paymentService.payment(items, shippingAddress);
+
+      const sessionId = resPayment.data.data.sessionId || resPayment.sessionId;
+
+      if (!sessionId) {
+        throw new Error("Session ID non trouvé dans la réponse de paiement");
+      }
+
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error("Stripe non chargé");
+
+      const { error } = await stripe.redirectToCheckout({ sessionId });
+
+      if (error) {
+        alert(error.message);
+      }
+    } catch (error) {
+      showToast(
+        "Une erreur s'est produite lors de la vérification de l'adresse.",
+        "error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUseSameAddressChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setUseSameAddress(e.target.checked);
+
+    if (e.target.checked) {
+      setBillingFirstname(firstname);
+      setBillingLastname(lastname);
+      setBillingStreetAddress(streetAddress);
+      setBillingComplStreetAddress(complStreetAddress);
+      setBillingPostalCode(postalCode);
+      setBillingCity(city);
+      setBillingCountry(country);
+      setBillingPhoneNumber(phoneNumber);
+    }
+  };
+
+  const checkAddress = () => {
     if (
       !firstname ||
       !lastname ||
@@ -103,25 +169,6 @@ export default function ShippingPage() {
       billing: billingData,
       useSameAddress,
     });
-
-    router.push("/frontoffice/checkout/payment");
-  };
-
-  const handleUseSameAddressChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setUseSameAddress(e.target.checked);
-
-    if (e.target.checked) {
-      setBillingFirstname(firstname);
-      setBillingLastname(lastname);
-      setBillingStreetAddress(streetAddress);
-      setBillingComplStreetAddress(complStreetAddress);
-      setBillingPostalCode(postalCode);
-      setBillingCity(city);
-      setBillingCountry(country);
-      setBillingPhoneNumber(phoneNumber);
-    }
   };
 
   return (

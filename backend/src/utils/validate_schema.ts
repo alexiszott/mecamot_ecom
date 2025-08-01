@@ -223,104 +223,52 @@ export const updateUserSchema = z.object({
   phone: z.string().optional(),
 });
 
-// Schema pour valider les données de commande côté client - VERSION AMÉLIORÉE
 export const orderBodySchema = z.object({
-  userId: z.string().cuid("ID utilisateur invalide").optional(),
-
-  shippingAddress: z
-    .string()
-    .min(5, {
-      message: "L'adresse de livraison doit contenir au moins 5 caractères.",
-    })
-    .max(200, {
-      message: "L'adresse de livraison ne peut pas dépasser 200 caractères.",
-    })
-    .trim(),
-
-  shippingCity: z
-    .string()
-    .min(2, {
-      message: "La ville de livraison doit contenir au moins 2 caractères.",
-    })
-    .max(100, {
-      message: "La ville de livraison ne peut pas dépasser 100 caractères.",
-    })
-    .trim(),
-
-  shippingPostalCode: z
-    .string()
-    .min(3, {
-      message: "Le code postal doit contenir au moins 3 caractères.",
-    })
-    .max(20, {
-      message: "Le code postal ne peut pas dépasser 20 caractères.",
-    })
-    .regex(/^[A-Z0-9\s\-]+$/i, {
-      message: "Le code postal contient des caractères invalides.",
-    })
-    .trim(),
-
-  shippingCountry: z
-    .string()
-    .min(2, {
-      message: "Le pays de livraison doit contenir au moins 2 caractères.",
-    })
-    .max(100, {
-      message: "Le pays de livraison ne peut pas dépasser 100 caractères.",
-    })
-    .trim(),
-
-  shippingPhone: z
-    .string()
-    .min(8, {
-      message: "Le numéro de téléphone doit contenir au moins 8 caractères.",
-    })
-    .max(20, {
-      message: "Le numéro de téléphone ne peut pas dépasser 20 caractères.",
-    })
-    .regex(/^[\+]?[0-9\s\-\(\)\.]+$/, {
-      message: "Le numéro de téléphone contient des caractères invalides.",
-    })
-    .trim(),
-
-  recipientName: z
-    .string()
-    .min(2, {
-      message: "Le nom du destinataire doit contenir au moins 2 caractères.",
-    })
-    .max(100, {
-      message: "Le nom du destinataire ne peut pas dépasser 100 caractères.",
-    })
-    .trim(),
-
-  cartItems: z
-    .array(
-      z.object({
-        productId: z.string().cuid("ID de produit invalide"),
-        quantity: z
-          .number()
-          .int("La quantité doit être un nombre entier.")
-          .min(1, { message: "La quantité doit être au moins 1." })
-          .max(9999, { message: "La quantité ne peut pas dépasser 9999." }),
-      })
-    )
-    .min(1, { message: "Au moins un produit est requis." })
-    .max(50, { message: "Maximum 50 produits par commande." }),
-
-  deliveryMethod: z
-    .enum(["STANDARD", "EXPRESS", "PICKUP"], {
-      message: "Méthode de livraison invalide.",
-    })
-    .optional(),
-
-  notes: z
-    .string()
-    .max(500, {
-      message: "Les notes ne peuvent pas dépasser 500 caractères.",
-    })
-    .trim()
-    .optional(),
-});
+  shippingAddress: z.object({
+    shipping: z.object({
+      firstName: z.string(),
+      lastName: z.string(),
+      streetAddress: z.string(),
+      complStreetAddress: z.string().optional(),
+      postalCode: z.string(),
+      city: z.string(),
+      country: z.string(),
+      phoneNumber: z.string(),
+    }),
+    billing: z.object({
+      firstName: z.string(),
+      lastName: z.string(),
+      streetAddress: z.string(),
+      complStreetAddress: z.string().optional(),
+      postalCode: z.string(),
+      city: z.string(),
+      country: z.string(),
+      phoneNumber: z.string(),
+    }),
+    useSameAddress: z.boolean(),
+  }),
+  items: z.array(z.object({
+    productId: z.string(),
+    price: z.string(),
+    quantity: z.number(),
+    product: z.object({
+      id: z.string(),
+      name: z.string(),
+      description: z.string().optional(),
+      brand: z.string().nullable(),
+      imageUrl: z.string().nullable(),
+      category: z.any().nullable(),
+    }),
+  })),
+}).transform((data) => ({
+  recipientName: `${data.shippingAddress.shipping.firstName} ${data.shippingAddress.shipping.lastName}`,
+  shippingCity: data.shippingAddress.shipping.city,
+  shippingPostalCode: data.shippingAddress.shipping.postalCode,
+  shippingCountry: data.shippingAddress.shipping.country,
+  shippingPhone: data.shippingAddress.shipping.phoneNumber,
+  cartItems: data.items,
+  originalShippingAddress: data.shippingAddress,
+}));
 
 export const productQuerySchema = paginationSchema
   .merge(sortSchema)

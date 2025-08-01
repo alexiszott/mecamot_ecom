@@ -20,11 +20,15 @@ export default function PaymentPage() {
         throw new Error("Adresse de livraison non définie");
       }
 
-      await orderService.createOrder(shippingAddress, items);
+      const resOrder = await orderService.createOrder(shippingAddress, items);
 
-      const res = await paymentService.payment(items, shippingAddress);
+      const resPayment = await paymentService.payment(items, shippingAddress);
 
-      const sessionId = res.sessionId;
+      const sessionId = resPayment.data.data.sessionId || resPayment.sessionId;
+
+      if (!sessionId) {
+        throw new Error("Session ID non trouvé dans la réponse de paiement");
+      }
 
       const stripe = await stripePromise;
       if (!stripe) throw new Error("Stripe non chargé");

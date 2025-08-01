@@ -7,6 +7,7 @@ import {
   linkReservationsToOrderService,
   createOrderItemsService,
   validateStockBatchService,
+  cancelOrderService,
 } from "./order_service.js";
 import { success, error } from "../../utils/apiReponse.js";
 import { HTTP_STATUS_CODES } from "../../utils/http_status_code.js";
@@ -16,6 +17,8 @@ import {
   updateStockProductService,
 } from "../product/product_service.js";
 import { prisma } from "../../prismaClient.js";
+import { OrderInfo } from "../../utils/orderInfo_type.js";
+import { PaymentStatus } from "@prisma/client";
 
 export const fetchOrders = async (req, res, next) => {
   try {
@@ -74,10 +77,54 @@ export const updateOrder = async (req, res, next) => {
   }
 };
 
-export const createOrder = async (req, res, next) => {
-  console.log("Creating order...");
+export const updateStripeIdOrder = async (
+  orderId: string,
+  stripeSessionId: string
+) => {
   try {
-    const { userId } = req.session;
+    return await updateOrderService(orderId, { stripeSessionId });
+  } catch (err: any) {
+    console.error("Erreur updateStripeIdOrder:", err);
+    throw new Error("Impossible de mettre à jour la commande");
+  }
+};
+
+export const updatePaymentStatus = async (
+  orderId: string,
+  paymentIntentId: string,
+  paymentMethodId: string
+) => {
+  try {
+    await updateOrderService(orderId, {
+      paymentIntentId,
+      paymentMethodId,
+      status: "PREPARING",
+      paymentStatus: "PAID",
+    });
+  } catch (err: any) {
+    throw new Error(`Erreur lors de la mise à jour du stock : ${err.message}`);
+  }
+};
+
+export const cancelOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const order = await cancelOrderService(id, req.body);
+
+    return success(res, { order }, "Commande annulée avec succès");
+  } catch (err: any) {
+    error(res, {
+      status: HTTP_STATUS_CODES.InternalServerError,
+      message: "Erreur lors de l'annulation de la commande",
+      code: HTTP_STATUS_CODES.InternalServerError,
+      errors: { general: ["Erreur interne du serveur"] },
+    });
+  }
+};
+
+export const createOrder = async (userId: string, orderInfo: OrderInfo) => {
+  try {
     const {
       shippingAddress,
       shippingCity,
@@ -88,7 +135,7 @@ export const createOrder = async (req, res, next) => {
       cartItems,
       deliveryMethod,
       notes,
-    } = req.body;
+    } = orderInfo;
 
     console.log("Creating order with data:", {
       userId,
@@ -108,17 +155,14 @@ export const createOrder = async (req, res, next) => {
 
     await prisma.$transaction(async (manager) => {
       // 1. Récupérer les produits avec leurs prix actuels et vérifier existence
-      console.log("Fetching and validating products...");
       const validatedProducts = await fetchAndValidateProducts(
         cartItems,
         manager
       );
 
-      console.log("Validated products:", validatedProducts);
       // 2. Vérifier et réserver le stock
       await validateAndReserveStock(validatedProducts, userId, manager);
 
-      console.log("Stock reserved successfully");
       // 3. Calculer les prix avec les données fraîches de la base
       const pricing = await calculatePricing(validatedProducts, deliveryMethod);
 
@@ -126,7 +170,6 @@ export const createOrder = async (req, res, next) => {
       // const paymentResult = await processPayment(pricing);
       // if (!paymentResult.success) throw new Error("Paiement échoué");
 
-      console.log("Pricing calculated:", pricing);
       // 5. Créer la commande avec toutes les données
       const orderData = {
         subTotal: pricing.subtotal,
@@ -152,20 +195,18 @@ export const createOrder = async (req, res, next) => {
 
       orderId = (orderResult as any).id;
 
-      console.log("Order created with ID:", orderId);
       // 6. Lier les réservations à la commande
       await linkReservationsToOrderService(orderId!, userId, manager);
 
-      console.log("Reservations linked to order successfully");
       // 7. Créer les OrderItems avec les vrais prix
       await createOrderItems(validatedProducts, orderId!, userId, manager);
-
-      console.log("Order items created successfully");
-      // 8. Mettre à jour le stock
-      await updateProductStock(validatedProducts, manager);
     });
 
-    return success(res, { order: orderResult }, "Commande créée avec succès");
+    return success(
+      res,
+      { order: orderResult, orderId },
+      "Commande créée avec succès"
+    );
   } catch (err: any) {
     log.error("Erreur lors de la création de la commande", {
       error: err.message,
@@ -235,6 +276,8 @@ export const fetchAndValidateProducts = async (
     );
   }
 };
+
+// Local functions
 
 const calculatePricing = async (
   validatedProducts: any[],

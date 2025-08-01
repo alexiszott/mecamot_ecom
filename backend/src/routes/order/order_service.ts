@@ -62,6 +62,9 @@ export const createOrderService = async (
   data: any,
   prismaManager
 ) => {
+  console.log("Creating order with data:", data);
+  console.log("User ID:", userId);
+
   return await prismaManager.order.create({
     data: {
       userId: userId,
@@ -90,6 +93,13 @@ export const updateOrderService = async (id: string, data: any) => {
       user: true,
       orderItems: true,
     },
+  });
+};
+
+export const cancelOrderService = async (id: string, data: any) => {
+  return await prisma.order.update({
+    where: { id },
+    data: { status: "CANCELLED" },
   });
 };
 
@@ -158,10 +168,9 @@ export const createOrderItemsService = async (
   product: any,
   prismaManager
 ) => {
-  await prismaManager.orderItems.create({
+  await prismaManager.orderItem.create({
     data: {
       orderId: orderId,
-      userId: userId,
       productId: product.id,
       quantity: product.quantity,
       price: product.price,

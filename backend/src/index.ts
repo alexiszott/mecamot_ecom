@@ -9,6 +9,7 @@ import categoryRoutes from "./routes/category/category_routes.js";
 import cartsRoutes from "./routes/cart/cart_routes.js";
 import paymentRoutes from "./routes/payment/payment_routes.js";
 import ordersRoutes from "./routes/order/order_routes.js";
+import webhookRoutes from "./routes/webhook/webhook_routes.js";
 
 import { PrismaClient } from "@prisma/client";
 import { errorHandler } from "./middleware/error_handler_middleware";
@@ -26,6 +27,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const prisma = new PrismaClient();
+
+app.use("/api/webhook", webhookRoutes);
 
 app.use(
   cors({

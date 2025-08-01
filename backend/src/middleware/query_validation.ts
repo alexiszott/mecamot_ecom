@@ -31,7 +31,7 @@ export const validateQuery = (schema: ZodSchema) => {
         });
       }
 
-      req.query = result.data;
+      Object.assign(req.query, result.data);
 
       log.debug("Query parameters validés avec succès", {
         validatedQuery: req.query,

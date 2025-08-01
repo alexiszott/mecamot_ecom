@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  cancelOrder,
   createOrder,
   fetchOrder,
   fetchOrders,
@@ -40,6 +41,15 @@ router.put(
   validateParams(idParamsSchema),
   validateBody(orderUpdateSchema),
   updateOrder
+);
+
+router.put(
+  "/cancel/:id",
+  requireAuth,
+  requireAdmin,
+  validateParams(idParamsSchema),
+  validateBody(orderUpdateSchema),
+  cancelOrder
 );
 
 export default router;
